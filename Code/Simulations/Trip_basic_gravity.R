@@ -1,28 +1,32 @@
-## Simulation to explore gravity model's ability to recreate asymmetry patterns
+## Simulation to explore basic gravity model's ability to recreate asymmetry patterns
+## Set-up remains the same (16 locations set up in a grid system with defined population size)
+## Compare impact of different parameter values
+
 library(asymmetry)
-library(RColorBrewer)
-library(dplyr)
-library(reshape2)
 library(ggplot2)
+library(gridExtra)
+library(ggpubr)
+library(png)
+library(reshape2)
+library(dplyr)
+library(DescTools)
 
 ## Basic gravity model
-grav.model.basic <- function(N_orig, N_dest, D, theta, alpha, beta, gamma, title){
+grav.model.basic <- function(N, D, theta, omega.1, omega.2, gamma, title){
   
-  trip.prop <- trips <- matrix(NA, nrow = length(N_orig), ncol = length(N_dest))
-  for (i in 1:length(N_orig)) {
-    for (j in 1:length(N_dest)) {
-      
+  trip.prop <- trips <- matrix(NA, nrow = length(N), ncol = length(N))
+  for (i in 1:length(N)) {
+    for (j in 1:length(N)) {
       trips[i,j] <- ifelse(
         i == j, 0,
-        exp(log(theta) + (alpha*log(N_dest[i]) + beta*log(N_orig[j]) - gamma*log(D[i,j])))
+        exp(log(theta) + (omega.1*log(N[i]) + omega.2*log(N[j]) - gamma*log(D[i,j])))
       )
-      
     }
     trip.prop[i,] <- (trips[i,]/sum(trips[i,])) ## trip proportion. 
   }
   
-  colnames(trip.prop) <- seq(1,16,1)
-  rownames(trip.prop) <- seq(1,16,1)
+  colnames(trip.prop) <- seq(1,length(N),1)
+  rownames(trip.prop) <- seq(1,length(N),1)
   plots <- asymmetry.plots(trip.prop, title)
   return(plots)
 }
@@ -40,22 +44,18 @@ asymmetry.plots <- function(trips, title){
   
   # heatmap for asymmetric portion 
   png("hmap.png", width = 400, height = 500)
-  hmap(trips.ss, col = my_palette, 
-       xlab = "Destination", ylab = "Origin")
+  hmap(trips.ss, col = my_palette, xlab = "Destination", ylab = "Origin")
   dev.off()
   
   img1 <- readPNG("hmap.png")
-  asym.map <- ggplot() + 
-    background_image(img1)+ 
-    ggtitle(title)
+  asym.map <- ggplot() + background_image(img1) + ggtitle(title)
   
   # tile plot of trips
   trips.df <- melt(trips, value.name = "trips", varnames = c('origin', 'destination'))
   
   trip.plot <- ggplot(trips.df, aes(x = destination, y = origin)) +
     geom_tile(aes(fill = trips))+
-    xlab("Destination") +
-    ylab("Origin ") +
+    labs(x = "Destination", y = "Origin ") +
     guides(fill = guide_legend(title = "Trips"))+
     theme_bw() + theme(axis.text.x=element_text(size=9, angle=0, vjust=0.3),
                        axis.text.y=element_text(size=9),
@@ -92,30 +92,25 @@ colnames(D) <- rownames(D) <- dummy.trips$origin
 
 #### 1. Basic trips - all parameters = 1 ####
 
-basic_trips <- grav.model.basic(N_orig = dummy.trips$varied.pop,
-                                N_dest = dummy.trips$varied.pop,
-                                D = D,
+basic_trips <- grav.model.basic(N = dummy.trips$varied.pop, D = D,
                                 theta = 1, 
-                                alpha = 1, 
-                                beta = 1, 
+                                omega.1 = 1, 
+                                omega.2 = 1, 
                                 gamma = 1,
-                                title = "Basic model, Varied Pop, all param = 1")
+                                title = "     Basic model, Varied Pop, all param = 1")
 #### 2. Basic trips - all parameters = 1, except gamma = 2 ####
-basic_trips_gamma2 <- grav.model.basic(N_orig = dummy.trips$varied.pop,
-                                N_dest = dummy.trips$varied.pop,
-                                D = D,
-                                theta = 1, 
-                                alpha = 1, 
-                                beta = 1, 
-                                gamma = 2,
-                                title = "Basic model, Varied Pop, gamma = 2")
+basic_trips_gamma2 <- grav.model.basic(N = dummy.trips$varied.pop, D = D,
+                                       theta = 1, 
+                                       omega.1 = 1, 
+                                       omega.2 = 1, 
+                                       gamma = 2,
+                                       title = "     Basic model, Varied Pop, gamma = 2")
 
 
 
 ## Combine plots
+asym.heat.maps <- ggarrange(basic_trips[[1]], basic_trips_gamma2[[1]], ncol = 2, nrow = 1, labels = c("A", "B"))
+asym.heat.maps
 
-asym.heat.maps <- ggarrange(basic_trips[[1]], basic_trips_gamma2[[1]],  
-                            ncol = 2, nrow = 1, labels = c("A", "B"))
-
-prop.OD.maps <-  ggarrange(basic_trips[[2]], basic_trips_gamma2[[2]],  
-                           ncol = 2, nrow = 1, labels = c("A", "B"))
+prop.OD.maps <-  ggarrange(basic_trips[[2]], basic_trips_gamma2[[2]], ncol = 2, nrow = 1, labels = c("A", "B"))
+prop.OD.maps
