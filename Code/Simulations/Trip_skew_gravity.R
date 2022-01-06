@@ -12,14 +12,14 @@ library(reshape2)
 library(dplyr)
 library(DescTools)
 
-grav.model.skew <- function(N, D, theta, alpha, beta, gamma, skew, title){
+grav.model.skew <- function(N, D, theta, omega.1, omega.2, gamma, skew, title){
   
   trip.prop <- trips <- matrix(NA, nrow = length(N), ncol = length(N))
   for (i in 1:length(N)) {
     for (j in 1:length(N)) {
       trips[i,j] <- ifelse(
         i == j, 0,
-        exp(log(theta) + (log(skew[i,j]) + alpha*log(N[i]) + beta*log(N[j]) - gamma*log(D[i,j])))
+        exp(log(theta) + (log(skew[i,j]) + omega.1*log(N[i]) + omega.2*log(N[j]) - gamma*log(D[i,j])))
       )
     }
     trip.prop[i,] <- (trips[i,]/sum(trips[i,])) ## trip proportion. 
@@ -130,20 +130,20 @@ skew_largePop <- no_skew * ifelse(dummy.trips$varied.pop < quantile(dummy.trips$
 ## Common parameters
 N = dummy.trips$varied.pop
 theta = 1 
-alpha = 1
-beta = 1
+omega.1 = 1
+omega.2 = 1
 gamma = 1
 
-plots_noSkew <- grav.model.skew(N,  D, theta, alpha, beta, gamma, skew = no_skew, title = "    No Skew")
-plots_skew_2mixed_low <- grav.model.skew(N,  D, theta, alpha, beta, gamma, skew = skew_2mixed_low, title = "    Two routes skewed low")
-plots_skew_2mixed_high <- grav.model.skew(N,  D, theta, alpha, beta, gamma, skew = skew_2mixed_high, title = "    Two routes skewed high")
-plots_skew_all_mixed <- grav.model.skew(N,  D, theta, alpha, beta, gamma, skew = skew_all_mixed, title = "    All routes randomly skewed")
-plots_skew_row <- grav.model.skew(N, D, theta, alpha, beta, gamma, skew = skew_row, title = "    One origin (#5) skewed high for all")
-plots_skew_col <- grav.model.skew(N, D, theta, alpha, beta, gamma, skew = skew_col, title = "    One destination (#5) skewed high for all")
-plots_skew_longDist <- grav.model.skew(N, D, theta, alpha, beta, gamma, skew = skew_longDist, title = "    Skew favors longer distance trips")
-plots_skew_shortDist <- grav.model.skew(N, D, theta, alpha, beta, gamma, skew = skew_shortDist, title = "    Skew favors shorter distance trips")
-plots_skew_largePop <- grav.model.skew(N, D, theta, alpha, beta, gamma, skew = skew_largePop, title = "    Skew favors larger population sizes")
-plots_skew_smallPop <- grav.model.skew(N, D, theta, alpha, beta, gamma, skew = skew_smallPop, title = "    Skew favors smaller population sizes")
+plots_noSkew <- grav.model.skew(N,  D, theta, omega.1, omega.2, gamma, skew = no_skew, title = "    No Skew")
+plots_skew_2mixed_low <- grav.model.skew(N,  D, theta, omega.1, omega.2, gamma, skew = skew_2mixed_low, title = "    Two routes skewed low")
+plots_skew_2mixed_high <- grav.model.skew(N,  D, theta, omega.1, omega.2, gamma, skew = skew_2mixed_high, title = "    Two routes skewed high")
+plots_skew_all_mixed <- grav.model.skew(N,  D, theta, omega.1, omega.2, gamma, skew = skew_all_mixed, title = "    All routes randomly skewed")
+plots_skew_row <- grav.model.skew(N, D, theta, omega.1, omega.2, gamma, skew = skew_row, title = "    One origin (#5) skewed high for all")
+plots_skew_col <- grav.model.skew(N, D, theta, omega.1, omega.2, gamma, skew = skew_col, title = "    One destination (#5) skewed high for all")
+plots_skew_longDist <- grav.model.skew(N, D, theta, omega.1, omega.2, gamma, skew = skew_longDist, title = "    Skew favors longer distance trips")
+plots_skew_shortDist <- grav.model.skew(N, D, theta, omega.1, omega.2, gamma, skew = skew_shortDist, title = "    Skew favors shorter distance trips")
+plots_skew_largePop <- grav.model.skew(N, D, theta, omega.1, omega.2, gamma, skew = skew_largePop, title = "    Skew favors larger population sizes")
+plots_skew_smallPop <- grav.model.skew(N, D, theta, omega.1, omega.2, gamma, skew = skew_smallPop, title = "    Skew favors smaller population sizes")
 
 
 asym.heat.maps <- ggarrange(plots_noSkew[[1]], plots_skew_2mixed_low[[1]], plots_skew_2mixed_high[[1]], plots_skew_all_mixed[[1]], plots_skew_row[[1]],
