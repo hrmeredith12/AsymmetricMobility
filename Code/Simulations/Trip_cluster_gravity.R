@@ -39,7 +39,7 @@ grav.model.param.cluster <- function(N, D, theta, omega.1, omega.2, gamma, title
       trips[i,j] <- ifelse(
         i == j,
         0,
-        exp(log(theta) + (omega.1[i,j]*log(N_dest[i]) + omega.2[i,j]*log(N_orig[j]) - gamma[i,j]*log(D[i,j])))
+        exp(log(theta) + (omega.1[i,j]*log(N[i]) + omega.2[i,j]*log(N[j]) - gamma[i,j]*log(D[i,j])))
       )
       
     }
@@ -156,10 +156,10 @@ gamma = 1
 
 plots_row_skew_cluster <- grav.model.skew.cluster(N, D, theta, omega.1, omega.2, gamma, skew = skew_row_cluster, title = "    Trips are clustered by row")
 plots_row_skew_cluster_capital <- grav.model.skew.cluster(N, D, theta, omega.1, omega.2, gamma, skew = skew_row_cluster_capital, title = "    Trips are clustered by row + capital")
-plots_col_skew_cluster <- grav.model.skew.cluster(N, D, theta, omega.1, omega.2, gamma, skew = skew_row_cluster, title = "    Trips are clustered by column")
-plots_col_skew_cluster_capital <- grav.model.skew.cluster(N, D, theta, omega.1, omega.2, gamma, skew = skew_row_cluster_capital, title = "    Trips are clustered by column + capital")
-plots_quad_skew_cluster <- grav.model.skew.cluster(N, D, theta, omega.1, omega.2, gamma, skew = skew_row_cluster, title = "    Trips are clustered by quadrants")
-plots_quad_skew_cluster_capital <- grav.model.skew.cluster(N, D, theta, omega.1, omega.2, gamma, skew = skew_row_cluster_capital, title = "    Trips are clustered by quad + capital")
+plots_col_skew_cluster <- grav.model.skew.cluster(N, D, theta, omega.1, omega.2, gamma, skew = skew_col_cluster, title = "    Trips are clustered by column")
+plots_col_skew_cluster_capital <- grav.model.skew.cluster(N, D, theta, omega.1, omega.2, gamma, skew = skew_col_cluster_capital, title = "    Trips are clustered by column + capital")
+plots_quad_skew_cluster <- grav.model.skew.cluster(N, D, theta, omega.1, omega.2, gamma, skew = skew_quad_cluster, title = "    Trips are clustered by quadrants")
+plots_quad_skew_cluster_capital <- grav.model.skew.cluster(N, D, theta, omega.1, omega.2, gamma, skew = skew_quad_cluster_capital, title = "    Trips are clustered by quad + capital")
 
 
 asym.heat.maps_skew <- ggarrange(plots_row_skew_cluster[[1]], plots_row_skew_cluster_capital[[1]], plots_col_skew_cluster[[1]], plots_col_skew_cluster_capital[[1]], 
@@ -195,13 +195,16 @@ gamma_quad_cluster_capital <- gamma_quad_cluster
 gamma_quad_cluster_capital[ ,dummy.trips$origin[which.max(dummy.trips$varied.pop)]] <- 2
 
 plots_row_cluster <- grav.model.param.cluster(N, D, theta, omega.1_row_cluster, omega.2_row_cluster, gamma_row_cluster, title = "    Trips are clustered by row")
-plots_row_cluster_capital <- grav.model.param.cluster_capital(N, D, theta, omega.1_row_cluster_capital, omega.2_row_cluster_capital, gamma_row_cluster_capital, title = "    Trips are clustered by row + capital")
+plots_row_cluster_capital <- grav.model.param.cluster(N, D, theta, omega.1_row_cluster_capital, omega.2_row_cluster_capital, gamma_row_cluster_capital, title = "    Trips are clustered by row + capital")
 plots_col_cluster <- grav.model.param.cluster(N, D, theta, omega.1_col_cluster, omega.2_col_cluster, gamma_col_cluster, title = "    Trips are clustered by column")
-plots_col_cluster_capital <- grav.model.param.cluster(N, D, theta, omega.1_row_cluster_capital, omega.2_row_cluster_capital, gamma_row_cluster_capital, title = "    Trips are clustered by column + capital")
+plots_col_cluster_capital <- grav.model.param.cluster(N, D, theta, omega.1_col_cluster_capital, omega.2_col_cluster_capital, gamma_col_cluster_capital, title = "    Trips are clustered by column + capital")
 plots_quad_cluster <- grav.model.param.cluster(N, D, theta, omega.1_quad_cluster, omega.2_quad_cluster, gamma_quad_cluster, title = "    Trips are clustered by quadrants")
-plots_quad_cluster_capital <- grav.model.param.cluster(N, D, theta, omega.1_row_cluster_capital, omega.2_row_cluster_capital, gamma_row_cluster_capital, title = "    Trips are clustered by quad + capital")
+plots_quad_cluster_capital <- grav.model.param.cluster(N, D, theta, omega.1_quad_cluster_capital, omega.2_quad_cluster_capital, gamma_quad_cluster_capital, title = "    Trips are clustered by quad + capital")
 
 
 asym.heat.maps <- ggarrange(plots_row_cluster[[1]], plots_row_cluster_capital[[1]], plots_col_cluster[[1]], plots_col_cluster_capital[[1]], 
                             plots_quad_cluster[[1]], plots_quad_cluster_capital[[1]], 
+                            ncol = 2, nrow = 3, labels = c("A", "B", "C", "D", "E", "F"))
+prop.OD.maps <- ggarrange(plots_row_cluster[[2]], plots_row_cluster_capital[[2]], plots_col_cluster[[2]], plots_col_cluster_capital[[2]], 
+                            plots_quad_cluster[[2]], plots_quad_cluster_capital[[2]], 
                             ncol = 2, nrow = 3, labels = c("A", "B", "C", "D", "E", "F"))
