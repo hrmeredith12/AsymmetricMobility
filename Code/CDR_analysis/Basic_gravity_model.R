@@ -1,4 +1,6 @@
 ## Basic gravity model functions
+## Comment out/uncomment lines relevant to the model being run (exponential or power form of distance kernel)
+
 library(hmob)
 library(mobility)
 
@@ -91,7 +93,7 @@ fit_basic_gravity <- function (M, D, N = NULL, N_orig = NULL, N_dest = NULL, n_c
            n_samp = n_samp, n_thin = n_thin, DIC = DIC, parallel = parallel)
 }
 
-estimate_trips <- function (dist.fx, M.observed, N, D, theta = 1, omega.1 = 1, omega.2 = 1, gam = 1, model, district.ID, district.label = rank.Id, location.name, counts = FALSE) 
+estimate_trips <- function (Key_code_name, dist.fx, M.observed, N, D, theta = 1, omega.1 = 1, omega.2 = 1, gam = 1, model, district.ID, district.label = rank.Id, location.name, counts = FALSE) 
   {
   if (!(identical(length(N), dim(D)[1], dim(D)[2])))
     stop("Check dimensions of input data N and D")
@@ -127,6 +129,9 @@ estimate_trips <- function (dist.fx, M.observed, N, D, theta = 1, omega.1 = 1, o
     }
   }
   
+  colnames(x) <- colnames(D)
+  rownames(x) <- rownames(D)
+  
   M.predicted <- reshape2::melt(x, 
                                 varnames = c("start.adm2.code", "end.adm2.code"),
                                 value.name = "trip.count")
@@ -137,6 +142,14 @@ estimate_trips <- function (dist.fx, M.observed, N, D, theta = 1, omega.1 = 1, o
   M.predicted$trip.date <- as.Date(paste("2010", M.predicted$m, M.predicted$d, sep="-"), "%Y-%m-%d")
   M.predicted$location.name <- rep(location.name, nrow = nrow(M.predicted))
   M.predicted$trip.source <- rep(model, nrow = nrow(M.predicted))
+  M.predicted <- left_join(M.predicted, Key_code_name, by = c("start.adm2.code"))
+  M.predicted <- left_join(M.predicted, Key_code_name, by = c("end.adm2.code" = "start.adm2.code"))
+  colnames(M.predicted) <- c("start.adm2.code", "end.adm2.code", "trip.count", "y", "m", "d", "trip.date", "location.name",
+                             "trip.source",  "start.adm1.name", "start.adm2.name", "start.adm1.code", "end.adm1.name",
+                             "end.adm2.name", "end.adm1.code") 
+  M.predicted <- M.predicted[, c("start.adm1.name", "start.adm2.name", "start.adm1.code", "start.adm2.code", "end.adm1.name", "end.adm2.name", "end.adm1.code", "end.adm2.code",
+                                 "d", "m", "y", "trip.date", "trip.count")]
+  
   return(M.predicted)
 }
 
@@ -167,51 +180,60 @@ print(n_chain)
 print(n_burn)
 print(n_samp)
 print(n_thin)
-out.NAM <- fit_basic_gravity(M,
-                             D,
-                             N,
-                             n_chain = n_chain,
-                             n_burn = n_burn,
-                             n_samp = n_samp,
-                             n_thin = n_thin,
-                             prior = NULL,
-                             DIC = TRUE,
-                             parallel = TRUE)
+# out.NAM <- fit_basic_gravity(M,
+#                              D,
+#                              N,
+#                              n_chain = n_chain,
+#                              n_burn = n_burn,
+#                              n_samp = n_samp,
+#                              n_thin = n_thin,
+#                              prior = NULL,
+#                              DIC = TRUE,
+#                              parallel = TRUE)
 
-save(out.NAM, file='../../Data/NAM/GravityModelEstimates/NAM_adm2_daily_estimates_Basic_gm_dist_pwr_chains.RData')
-print('Saved: ../../Data/NAM/GravityModelEstimates/NAM_adm2_daily_estimates_Basic_gm_dist_pwr_chains.RData')
+# save(out.NAM, file='../../Data/NAM/GravityModelEstimates/NAM_adm2_daily_estimates_Basic_gm_dist_pwr_chains.RData')
+# print('Saved: ../../Data/NAM/GravityModelEstimates/NAM_adm2_daily_estimates_Basic_gm_dist_pwr_chains.RData')
 print(Sys.time() - t.start)
 
-NAM.basic.pwr <- mobility::summarize_mobility(out.NAM)
-NAM.predicted.basic.pwr <- estimate_trips(dist.fx = "pwr",
-                                          M,
-                                          N,
-                                          D,
-                                          theta=NAM.basic.pwr['theta', 'Mean'],
-                                          omega.1=NAM.basic.pwr['omega_1', 'Mean'],
-                                          omega.2=NAM.basic.pwr['omega_2', 'Mean'],
-                                          gam = NAM.basic.pwr[rownames(NAM.basic.pwr) %like% 'gamma', 'Mean'],
-                                          model = 'BasicModel-pwr',
-                                          district.ID = districts,
-                                          district.label = rank.Id,
-                                          location = "Namibia",
-                                          counts=TRUE)
-save(NAM.predicted.basic.pwr, file='../../Data/NAM/GravityModelEstimates/NAM_adm2_daily_estimates_Basic_gm_dist_pwr.RData')
+# details to add in adm
+load("../../Data/NAM/Key_code_name_NAM.RData")
 
-# NAM.basic.exp <- mobility::summarize_mobility(out.NAM)
-# NAM.predicted.basic.exp <- estimate_trips(dist.fx = "exp",
+# NAM.basic.pwr <- mobility::summarize_mobility(out.NAM)
+# NAM.predicted.basic.pwr <- estimate_trips(Key_code_name_NAM,
+#                                           dist.fx = "pwr",
 #                                           M,
 #                                           N,
 #                                           D,
-#                                           theta=NAM.basic.exp['theta', 'Mean'],
-#                                           omega.1=NAM.basic.exp['omega_1', 'Mean'],
-#                                           omega.2=NAM.basic.exp['omega_2', 'Mean'],
-#                                           gam = NAM.basic.exp[rownames(NAM.basic.exp) %like% 'gamma', 'Mean'],
-#                                           model = 'BasicModel-exp',
+#                                           theta=NAM.basic.pwr['theta', 'Mean'],
+#                                           omega.1=NAM.basic.pwr['omega_1', 'Mean'],
+#                                           omega.2=NAM.basic.pwr['omega_2', 'Mean'],
+#                                           gam = NAM.basic.pwr[rownames(NAM.basic.pwr) %like% 'gamma', 'Mean'],
+#                                           model = 'BasicModel-pwr',
 #                                           district.ID = districts,
 #                                           district.label = rank.Id,
 #                                           location = "Namibia",
 #                                           counts=TRUE)
+
+
+
+# save(NAM.predicted.basic.pwr, file='../../Data/NAM/GravityModelEstimates/NAM_adm2_daily_estimates_Basic_gm_dist_pwr.RData')
+
+load("../../Data/NAM/GravityModelEstimates/NAM_adm2_daily_estimates_Basic_gm_dist_exp_chains.RData")
+NAM.basic.exp <- mobility::summarize_mobility(out.NAM)
+NAM.predicted.basic.exp <- estimate_trips(Key_code_name_NAM,
+                                          dist.fx = "exp",
+                                          M,
+                                          N,
+                                          D,
+                                          theta=NAM.basic.exp['theta', 'Mean'],
+                                          omega.1=NAM.basic.exp['omega_1', 'Mean'],
+                                          omega.2=NAM.basic.exp['omega_2', 'Mean'],
+                                          gam = NAM.basic.exp[rownames(NAM.basic.exp) %like% 'gamma', 'Mean'],
+                                          model = 'BasicModel-exp',
+                                          district.ID = districts,
+                                          district.label = rank.Id,
+                                          location = "Namibia",
+                                          counts=TRUE)
 # save(NAM.predicted.basic.exp, file='../../Data/NAM/GravityModelEstimates/NAM_adm2_daily_estimates_Basic_gm_dist_exp.RData')
 
 ### Kenya adm2
@@ -227,22 +249,22 @@ print(n_chain)
 print(n_burn)
 print(n_samp)
 print(n_thin)
-out.KEN <- fit_basic_gravity(M,
-                             D,
-                             N,
-                             n_chain = n_chain,
-                             n_burn = n_burn,
-                             n_samp = n_samp,
-                             n_thin = n_thin,
-                             prior = NULL,
-                             DIC = TRUE,
-                             parallel = TRUE)
-save(out.KEN, file='../../Data/KEN/GravityModelEstimates/KEN_adm2_daily_estimates_Basic_gm_dist_pwr_chains.RData')
-print('Saved: ../../Data/KEN/GravityModelEstimates/KEN_adm2_daily_estimates_Basic_gm_dist_pwr_chains.RData')
+# out.KEN <- fit_basic_gravity(M,
+#                              D,
+#                              N,
+#                              n_chain = n_chain,
+#                              n_burn = n_burn,
+#                              n_samp = n_samp,
+#                              n_thin = n_thin,
+#                              prior = NULL,
+#                              DIC = TRUE,
+#                              parallel = TRUE)
+# save(out.KEN, file='../../Data/KEN/GravityModelEstimates/KEN_adm2_daily_estimates_Basic_gm_dist_pwr_chains.RData')
+# print('Saved: ../../Data/KEN/GravityModelEstimates/KEN_adm2_daily_estimates_Basic_gm_dist_pwr_chains.RData')
 print(Sys.time() - t.start)
 
 KEN.basic.pwr <- mobility::summarize_mobility(out.KEN)
-KEN.predicted.basic.pwr <- sim.gravity.m.1.2(dist.fx = "pwr",
+KEN.predicted.basic.pwr <- estimate_trips(dist.fx = "pwr",
                                              M,
                                              N,
                                              D,
@@ -255,7 +277,7 @@ KEN.predicted.basic.pwr <- sim.gravity.m.1.2(dist.fx = "pwr",
                                              district.label = rank.Id,
                                              location = "Kenya",
                                              counts=TRUE)
-save(KEN.predicted.basic.pwr, file='../../Data/KEN/GravityModelEstimates/KEN_adm2_daily_estimates_Basic_gm_dist_pwr.RData')
+# save(KEN.predicted.basic.pwr, file='../../Data/KEN/GravityModelEstimates/KEN_adm2_daily_estimates_Basic_gm_dist_pwr.RData')
 
 # KEN.basic.exp <- mobility::summarize_mobility(out.KEN)
 # KEN.predicted.basic.exp <- estimate_trips(dist.fx = "exp",

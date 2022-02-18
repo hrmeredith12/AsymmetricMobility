@@ -72,6 +72,7 @@ ggplot(NSI, aes(NSI.yearly.avg, fill = trip.source))+
 
 NSI_NAM_map <- NAM.NSI.map(NSI_NAM)
 NSI_NAM_gm_basic_exp_map <- NAM.NSI.map(NSI_NAM_gm_basic_exp)
+NSI_NAM_gm_basic_pwr_map <- NAM.NSI.map(NSI_NAM_gm_basic_pwr)
 NSI_KEN_map <- KEN.NSI.map(NSI_KEN)
 
 

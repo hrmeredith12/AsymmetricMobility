@@ -41,7 +41,7 @@ Node.symmetry.index <- function(df, location.name, trip.source){
   NSI <- subset(NSI, start.adm2.code == end.adm2.code) # since each origin has unique NSI, regardless of destinations, just select one row/location
   
   NSI.overall <- NSI %>%
-    group_by(start.adm2.code)%>%
+    group_by(start.adm2.code, start.adm2.name)%>%
     summarise(NSI.yearly.avg = mean(NSI, na.rm = T),
               NSI.yearly.sd = sd(NSI, na.rm = T))%>%
     distinct(start.adm2.code, .keep_all = T)
@@ -83,6 +83,9 @@ NAM.NSI.map <- function(NSI_NAM){
   key.adm2 <- left_join(key.adm2, NSI_NAM, by = c("start.adm2.code"))
   
   states.shp.2 <- merge(states.shp, key.adm2, by.x = c("NAME_1", "NAME_2", "ID_1", "ID_2", "build_urb"), by.y = c("NAME_1", "NAME_2", "ID_1", "ID_2", "build_urb"))
+  # Key_code_name_NAM <- states.shp.2@data[, c("NAME_1", "NAME_2", "start.adm1.code", "start.adm2.code")]  ## used to link code with names in Basic gravity model function
+  # colnames(Key_code_name_NAM) <- c("start.adm1.name", "start.adm2.name", "start.adm1.code", "start.adm2.code")
+  # save(Key_code_name_NAM, file = "../../Data/NAM/Key_code_name_NAM.RData") 
   states.shp.f <- fortify(states.shp.2, region = "start.adm2.code", name = "NAME_2")
   class(states.shp.f)
   
