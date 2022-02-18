@@ -192,8 +192,8 @@ alpha=1
 
 ## Run simulations and generate plots
 
-plots_lambda_0.1 <- sim.gravity.duration(N, D, theta, omega.1, omega.2, gamma, alpha, lambda = lambda_0.1, counts = FALSE, title = "    All trip durations = 10 days \n")
-plots_lambda_1 <- sim.gravity.duration(N, D, theta, omega.1, omega.2, gamma, alpha, lambda = lambda_1, counts = FALSE, title = "    All trip durations = 1 day")
+# plots_lambda_0.1 <- sim.gravity.duration(N, D, theta, omega.1, omega.2, gamma, alpha, lambda = lambda_0.1, counts = FALSE, title = "    All trip durations = 10 days \n")
+# plots_lambda_1 <- sim.gravity.duration(N, D, theta, omega.1, omega.2, gamma, alpha, lambda = lambda_1, counts = FALSE, title = "    All trip durations = 1 day")
 plots_lambda_2mixed <- sim.gravity.duration(N, D, theta, omega.1, omega.2, gamma, alpha, lambda = lambda_2mixed, counts = FALSE, title = "    All trip durations = 1 day, \nexcept for two routes = 10 days")
 plots_lambda_mixed <- sim.gravity.duration(N, D, theta, omega.1, omega.2, gamma, alpha, lambda = lambda_mixed, counts = FALSE, title = "    Random trip durations")
 plots_lambda_row <- sim.gravity.duration(N, D, theta, omega.1, omega.2, gamma, alpha, lambda = lambda_row, counts = FALSE, title ="    All trip durations = 1 day, \nexcept 1 origin (#5) that has 10 day trips")
