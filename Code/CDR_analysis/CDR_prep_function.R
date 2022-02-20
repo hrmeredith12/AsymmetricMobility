@@ -138,6 +138,7 @@ trip.data.long$link.distance.km <- distHaversine(matrix(c(trip.data.long$X_start
 KEN <- trip.data.long[ , c("start.adm1.name", "start.adm2.name", "start.adm1.code", "start.adm2.code", "end.adm1.name", "end.adm2.name", "end.adm1.code", "end.adm2.code",
                                      "d", "m", "y", "trip.date", "trip.count", "X_start", "Y_start", "X_end", "Y_end", "link.distance.km")]
 
+KEN <- subset(KEN, !trip.date %in% as.Date(c("2008-06-01", "2009-03-04"))) ## Dates seemed to have aggregrated trip counts that are not in line with counts seen on other dates
 
 # save(KEN, file = "../../Data/KEN/KEN.daily.trips.RData")
 
@@ -149,7 +150,6 @@ KEN.daily.avg <- KEN %>%
 KEN.daily.avg <- KEN.daily.avg[order(KEN.daily.avg$start.adm2.code, KEN.daily.avg$end.adm2.code),]
 
 # save(KEN.daily.avg, file = "../../Data/KEN/KEN.daily.trips.avg.RData")
-
 
 KEN.daily.avg.matrix <-  KEN.daily.avg %>% select(start.adm2.code, end.adm2.code, trip.count.avg) %>%
   pivot_wider(names_from = end.adm2.code,
