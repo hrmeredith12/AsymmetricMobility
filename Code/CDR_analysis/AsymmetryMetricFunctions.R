@@ -1,19 +1,29 @@
 ## Calculating different metrics for network symmetry
-
-library(tidyr)
+library(asymmetry)
+library(Cairo)
 library(dplyr)
-library(lubridate)
+library(ggmap)
 library(ggplot2)
+library(lubridate)
+library(maptools)
+library(RColorBrewer)
+library(readxl)
+library(rgdal)
+library(rgeos)
 library(scales)
+library(sf)
+library(sp)
+library(tidyr)
 
 #### Entropy Index ####
+## Measures extent to which the trips are distributed evenly across all links in the network (0 = one node dominates, 1 = trips are evenly distributed)
 
 Entropy.Index <- function(df, location.name, trip.source){
   EI <- df %>%
     group_by(trip.date)%>%
-    mutate(links = n(),
-           total.trips = sum(trip.count, na.rm = T),
-           Z.l = trip.count/total.trips,
+    mutate(links = n(),   # number of OD pairs
+           total.trips = sum(trip.count, na.rm = T),   
+           Z.l = trip.count/total.trips,  # proportion of journeys on link l in relation to the total number of journeys in the network
            Z.l.term = ifelse(Z.l == 0, 0, Z.l*log(Z.l)/log(links)),
            entropy.idx = -sum(Z.l.term),
            entropy.date = as.Date(paste("2010", m, d,sep="-"), "%Y-%m-%d")) %>%
@@ -40,6 +50,13 @@ Node.symmetry.index <- function(df, location.name, trip.source){
   NSI$NSI <- (NSI$incoming.trips - NSI$outgoing.trips)/(NSI$incoming.trips + NSI$outgoing.trips)
   NSI <- subset(NSI, start.adm2.code == end.adm2.code) # since each origin has unique NSI, regardless of destinations, just select one row/location
   
+  # ggplot(NSI, aes(outgoing.trips, incoming.trips)) + 
+  #   geom_point()+
+  #   geom_abline(intercept = 0, slope = 1) + 
+  #   scale_y_continuous(labels = function(x) format(x, scientific = TRUE))+
+  #   facet_wrap(~start.adm2.name, nrow = 6, scales = "free")
+  
+  
   NSI.overall <- NSI %>%
     group_by(start.adm2.code, start.adm2.name)%>%
     summarise(NSI.yearly.avg = mean(NSI, na.rm = T),
@@ -51,20 +68,6 @@ Node.symmetry.index <- function(df, location.name, trip.source){
   
   return(NSI.overall)
 }
-
-## Mapping NSI mean and variation
-library(ggplot2)
-library(maptools)
-library(rgeos)
-library(Cairo)
-library(ggmap)
-library(scales)
-library(RColorBrewer)
-library(sf)
-library(sp)
-library(rgdal)
-library(readxl)
-library(dplyr)
 
 NAM.NSI.map <- function(NSI_NAM){
   set.seed(8000)
@@ -104,9 +107,8 @@ NAM.NSI.map <- function(NSI_NAM){
                          breaks = c(-0.015, -0.01, -0.005, 0, 0.005, 0.01, 0.015),#pretty_breaks(n = 3),
                          labels = c('-0.015', '-0.01', '-0.005', '0', '0.005', '0.01', '0.015'),
                          limits = c(min = -0.015, max = 0.015)) +
-    # labs(title = "Average Daily NSI")+
-    theme(legend.position = c(0.85, 0.45),
-          axis.ticks = element_blank(), 
+    guides(fill = guide_colourbar(barwidth = 1, barheight = 15))+
+    theme(axis.ticks = element_blank(), 
           axis.title = element_blank(), 
           axis.text =  element_blank(), 
           panel.background = element_blank())
@@ -129,6 +131,7 @@ NAM.NSI.map <- function(NSI_NAM){
           panel.background = element_blank())
   return(NSI.map)
 }
+
 KEN.NSI.map <- function(NSI_KEN){
   set.seed(8000)
   
@@ -151,13 +154,20 @@ KEN.NSI.map <- function(NSI_KEN){
                              labels = c("Central", "Coast", "Eastern", "Nairobi","North Eastern","Nyanza","Rift Valley", "Western"))
   adm2.data <- left_join(adm2.data, adm1.data, by = c("ADM1_NAME" = "NAME_1"))
   adm2 <- adm2.data[, c("X_coord", "Y_coord", "ID_1", "fid", "ADM1_NAME", "ADM2_NAME")]
+  adm2 <- adm2[order(adm2$ID_1),]
+  adm2$ID_2 <- seq(1:nrow(adm2))
   
   num.states <- length(states.shp$ADM1_NAME)
   mydata<-data.frame(Name_1 = states.shp$ADM1_NAME, id = states.shp$ADM1_CODE, Name_2 = states.shp$ADM2_NAME, id.2 = states.shp$ADM2_CODE, popDensity = rnorm(num.states, 55,20))
-  
-  # need to reorder files because ID_2/NAME_2 of the NAM_adm2_centroids.. don't match NAM_adm2.shp
+ 
   mydata.2 <- merge(mydata, adm2, by.x = "Name_2", by.y = "ADM2_NAME")
+  
+  # Key_code_name_KEN <- mydata.2[, c("Name_1", "Name_2", "ID_1", "ID_2")]  ## used to link code with names in Basic gravity model function
+  # colnames(Key_code_name_KEN) <- c("start.adm1.name", "start.adm2.name", "start.adm1.code", "start.adm2.code")
+  # save(Key_code_name_KEN, file = "../../Data/KEN/Key_code_name_KEN.RData")
+
   mydata.2 <- left_join(mydata.2, NSI_KEN, by = c("Name_2" = "start.adm2.name"))
+  
   
   # fortify shape file to get into dataframe
   states.shp.f <- fortify(states.shp, region = "ADM2_CODE", name = "ADM2_NAME")
@@ -175,16 +185,74 @@ KEN.NSI.map <- function(NSI_KEN){
     coord_map() + 
     scale_fill_distiller(name = "Node Strength Index", 
                          palette = "YlOrRd", 
-                         breaks = c(-0.05, -0.01, 0, 0.01, 0.05),
-                         labels = c('-0.05','-0.01', '0', '0.01', '0.05'),
-                         limits = c(min = -0.17, max = 0.03)) +
-    # labs(title = "Kenya urbanicity")+
-    theme(legend.position = c(1, 0.45),
-          axis.ticks = element_blank(), 
+                         breaks = c(-0.015, -0.01, -0.005, 0, 0.005, 0.01, 0.015),
+                         labels = c('-0.015', '-0.01', '-0.005', '0', '0.005', '0.01', '0.015'),
+                         limits = c(min = -0.0205, max = 0.0205))+
+    theme(axis.ticks = element_blank(), 
           axis.title = element_blank(), 
           axis.text =  element_blank(), 
-          panel.background = element_blank())
+          panel.background = element_blank())+
+    guides(fill = guide_colourbar(barwidth = 1, barheight = 15))
 }
 
+#### Transitive Symmetry Index ####
 
+transitive.symmetry <- function(df, location.name, trip.source){
+  trip.dates <- df %>% select(trip.date, m, y) %>% distinct(trip.date, m, y)
+  asym.df <- rep()
+  
+  ## Calculate skew symmetry for each date. Make sure matrices are ordered correctly, otherwise they will not be ordered correctly in heatmap/transitive matrix
+  for(i in 1:nrow(trip.dates)){  
+    print(trip.dates$trip.date[i])
+    
+    # turn trips from date[i] into matrix
+    trips.m <- subset(df, trip.date == trip.dates$trip.date[i])
+    trips.m <- trips.m %>% select(start.adm2.code, end.adm2.code,trip.count) %>%
+      pivot_wider(names_from = end.adm2.code, values_from = trip.count) 
+    trips.m <- as.matrix(trips.m)
+    rownames(trips.m) <- trips.m[,1]
+    trips.m <- trips.m[,-1]
+    trips.m[is.na(trips.m)] <- 0
+    trips.m.order <- trips.m[order(as.integer(rownames(trips.m))), order(as.integer(colnames(trips.m)))]
+    
+    # calculate skew-symmetry matrix for date[i]
+    trips.ss <- skewsymmetry(trips.m.order)
+    asym.matrx <- trips.ss$A
+    asym.df.i <- reshape2::melt(asym.matrx, value.name = "skew.symmetry", varnames=c('start.adm2.code', 'end.adm2.code'))
+    asym.df.i$trip.date <- rep(trip.dates$trip.date[i], nrow = nrow(asym.df.i))
+    
+    # collect all skew_symmetry matrices. Used to calculate average skew-symmetries next 
+    asym.df <- rbind(asym.df, asym.df.i)
+  }
+  
+  # Average skew-symmetry across all dates and turn into matrix
+  asym.overall <- asym.df %>% group_by(start.adm2.code, end.adm2.code)%>%
+    summarise(skew.sym.yearly.avg = mean(skew.symmetry, na.rm = T),
+              skew.sym.yearly.sd = sd(skew.symmetry, na.rm = T))%>%
+    distinct(start.adm2.code, end.adm2.code, .keep_all = T)
+  asym.wide <- asym.overall %>% select(start.adm2.code, end.adm2.code, skew.sym.yearly.avg) %>%
+    pivot_wider(names_from = end.adm2.code, values_from = skew.sym.yearly.avg) 
+  asym.wide <- as.matrix(asym.wide)
+  rownames(asym.wide) <- asym.wide[,1]
+  asym.wide <- asym.wide[,-1]
+  asym.wide.order <- asym.wide[order(as.integer(rownames(asym.wide))), order(as.integer(colnames(asym.wide)))]
+  
+  # Order skew-symmetry matrix by number of negative or positive cells per row (origin)
+  bin <- asym.wide.order * 0
+  bin[asym.wide.order > 0] <- 1
+  bin[asym.wide.order < 0] <- -1
+  rsbin <- rowSums(bin)
+  asym.matrx.order <- asym.wide.order[order(rsbin), order(rsbin)]
+  
+  # Only interested in top half of the matrix to characterize transitive nature of asymmetry
+  asym.matrx.order[lower.tri(asym.matrx.order)] <- NA
+  asym.long <- reshape2::melt(asym.matrx.order, value.name = "skew.symmetry", varnames=c('start.adm2.code', 'end.adm2.code'))
+  asym.plot <- subset(asym.long, !is.na(skew.symmetry) & start.adm2.code != end.adm2.code)
+  asym.plot$pos.neg <- ifelse(asym.plot$skew.symmetry > 0, 1, 
+                              ifelse(asym.plot$skew.symmetry < 0, -1, 0)) 
+  asym.plot$sqrt.skew <- sqrt(abs(asym.plot$skew.symmetry))*asym.plot$pos.neg
+  asym.plot$location.name <- rep(location.name, nrow = nrow(asym.plot))
+  asym.plot$trip.source <- rep(trip.source, nrow = nrow(asym.plot))
+  return(asym.plot)
+}
 

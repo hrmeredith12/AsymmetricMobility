@@ -3,7 +3,7 @@
 ##      - Trip data from CDRs were cleaned/generated in script "CDR_prep_function.R"
 ##      - Trip data generated from models were generated in script "Basic_gravity_model.R". Note that it takes 1-2 hours to run a basic gravity model. 
 ## Output: Entropy Index, Node Symmetry Index, Gini Coefficient, Asymmetry Transitive Index
-## Last updated: February 18, 2022
+## Last updated: February 21, 2022
 ## By: Hannah Meredith
 
 library(tidyr)
@@ -11,6 +11,7 @@ library(dplyr)
 library(lubridate)
 library(ggplot2)
 library(scales)
+library(ggpubr)
 
 ## Source functions
 source("AsymmetryMetricFunctions.R")
@@ -44,38 +45,97 @@ ggplot(EI, aes(entropy.date, entropy.idx, color = as.factor(y)))+
   labs(x = "Date", y = "Daily Entropy Index", color = "Year")+
   theme(panel.background = element_blank())
 
-EI.table <- rbind.data.frame(EI_NAM[1, c("EI_mean", "EI_sd", "location.name")],   # Entropy index for Namibia: 0.469 +/- 0.0129
-                             EI_NAM_gm_basic_exp[1, c("EI_mean", "EI_sd", "location.name")],
-                             EI_NAM_gm_basic_pwr[1, c("EI_mean", "EI_sd", "location.name")],
-                             EI_KEN[1, c("EI_mean", "EI_sd", "location.name")],   # Entropy index for Kenya: 0.4654 +/- 0.008
-                             EI_KEN_gm_basic_exp[1, c("EI_mean", "EI_sd", "location.name")],
-                             EI_KEN_gm_basic_pwr[1, c("EI_mean", "EI_sd", "location.name")])   
+EI.table <- rbind.data.frame(EI_NAM[1, c("EI_mean", "EI_sd", "location.name", "trip.source")],   # Entropy index for Namibia: 0.469 +/- 0.0129
+                             EI_NAM_gm_basic_exp[1, c("EI_mean", "EI_sd", "location.name", "trip.source")],
+                             EI_NAM_gm_basic_pwr[1, c("EI_mean", "EI_sd", "location.name", "trip.source")],
+                             EI_KEN[1, c("EI_mean", "EI_sd", "location.name", "trip.source")],   # Entropy index for Kenya: 0.4654 +/- 0.008
+                             EI_KEN_gm_basic_exp[1, c("EI_mean", "EI_sd", "location.name", "trip.source")],
+                             EI_KEN_gm_basic_pwr[1, c("EI_mean", "EI_sd", "location.name", "trip.source")])   
 
 #### Calculate and compare Node Symmetry Index ####
 
 NSI_NAM <- Node.symmetry.index(NAM, "Namibia", "CDRs")
-NSI_NAM_gm_basic_exp <-Node.symmetry.index(NAM.predicted.basic.exp, "Namibia", "Basic_exp")
-NSI_NAM_gm_basic_pwr <-Node.symmetry.index(NAM.predicted.basic.pwr, "Namibia", "Basic_pwr")
+NSI_NAM_gm_basic_exp <-Node.symmetry.index(NAM.predicted.basic.exp, "Namibia", "Basic (exponential)")
+NSI_NAM_gm_basic_pwr <-Node.symmetry.index(NAM.predicted.basic.pwr, "Namibia", "Basic (power)")
 NSI_KEN <- Node.symmetry.index(KEN, "Kenya", "CDRs")
-NSI_KEN_gm_basic_exp <-Node.symmetry.index(KEN.predicted.basic.exp, "Kenya", "Basic_exp")
-NSI_KEN_gm_basic_pwr <-Node.symmetry.index(KEN.predicted.basic.pwr, "Kenya", "Basic_pwr")
+NSI_KEN_gm_basic_exp <-Node.symmetry.index(KEN.predicted.basic.exp, "Kenya", "Basic (exponential)")
+NSI_KEN_gm_basic_pwr <-Node.symmetry.index(KEN.predicted.basic.pwr, "Kenya", "Basic (power)")
 
 NSI <- rbind(NSI_NAM, NSI_NAM_gm_basic_exp, NSI_NAM_gm_basic_pwr,
              NSI_KEN, NSI_KEN_gm_basic_exp, NSI_KEN_gm_basic_pwr)
 
 ggplot(NSI, aes(NSI.yearly.avg, fill = trip.source))+
   geom_density(alpha = 0.5)+
-  facet_wrap(~location.name, nrow = 2)+
+  facet_wrap(~location.name, nrow = 2, scales = "free_y")+
   labs(x = "Averge Daily NSI", y = "Density", fill = "Trip count source")+
   lims(x = c(-0.05,0.05))+
-  scale_y_sqrt()
+  scale_y_sqrt()+
+  theme(legend.position = c(0.8, 0.9),
+        panel.background = element_blank(),
+        strip.background =element_rect(fill="white"),
+        strip.text = element_text(colour = 'white'))
+
+ggplot(NSI, aes(NSI.yearly.avg, fill = trip.source))+
+  geom_histogram(alpha = 0.5, color = "black")+
+  facet_wrap(~location.name, nrow = 2, scales = "free_y")+
+  labs(x = "Averge Daily NSI", y = "Count", fill = "Trip count source")+
+  lims(x = c(-0.05,0.05))+
+  scale_y_sqrt()+
+  theme(legend.position = c(0.8, 0.9),
+        panel.background = element_blank(),
+        strip.background =element_rect(fill="white"),
+        strip.text = element_text(colour = 'white'))
+
 
 NSI_NAM_map <- NAM.NSI.map(NSI_NAM)
 NSI_NAM_gm_basic_exp_map <- NAM.NSI.map(NSI_NAM_gm_basic_exp)
 NSI_NAM_gm_basic_pwr_map <- NAM.NSI.map(NSI_NAM_gm_basic_pwr)
 NSI_KEN_map <- KEN.NSI.map(NSI_KEN)
+NSI_KEN_gm_basic_exp_map <- KEN.NSI.map(NSI_KEN_gm_basic_exp)
+NSI_KEN_gm_basic_pwr_map <- KEN.NSI.map(NSI_KEN_gm_basic_pwr)
+
+SSA_NSI_maps <- ggarrange(NSI_NAM_map, NSI_NAM_gm_basic_exp_map, NSI_NAM_gm_basic_pwr_map,
+                          NSI_KEN_map, NSI_KEN_gm_basic_exp_map, NSI_KEN_gm_basic_pwr_map,
+                          ncol = 3, nrow = 2)
 
 
 
-NSI.table <- rbind.data.frame(NSI_NAM[1, c("NSI_mean", "NSI_sd", "location.name")],   # Entropy index for Namibia: 0.469 +/- 0.0129
-                             NSI_KEN[1, c("NSI_mean", "NSI_sd", "location.name")])   # Entropy index for Kenya: 0.4654 +/- 0.008
+
+NSI.table <- rbind.data.frame(NSI_NAM[, c("location.name", "start.adm2.name", "start.adm2.code", "NSI.yearly.avg", "NSI.yearly.sd", "trip.source")],   # Entropy index for Namibia: 0.469 +/- 0.0129
+                             NSI_KEN[, c("location.name", "start.adm2.name", "start.adm2.code", "NSI.yearly.avg", "NSI.yearly.sd", "trip.source")])   # Entropy index for Kenya: 0.4654 +/- 0.008
+
+
+#### Calculate and compare Transitive Symmetry  ####
+
+TS_NAM <- transitive.symmetry(NAM, "Namibia", "CDRs")
+TS_NAM_gm_basic_exp <-transitive.symmetry(NAM.predicted.basic.exp, "Namibia", "Basic (exponential)")
+TS_NAM_gm_basic_pwr <-transitive.symmetry(NAM.predicted.basic.pwr, "Namibia", "Basic (power)")
+TS_KEN <- transitive.symmetry(KEN, "Kenya", "CDRs")
+TS_KEN_gm_basic_exp <-transitive.symmetry(KEN.predicted.basic.exp, "Kenya", "Basic (exponential)")
+TS_KEN_gm_basic_pwr <-transitive.symmetry(KEN.predicted.basic.pwr, "Kenya", "Basic (power)")
+
+TS <- rbind(TS_NAM, TS_NAM_gm_basic_exp, TS_NAM_gm_basic_pwr,
+             TS_KEN, TS_KEN_gm_basic_exp, TS_KEN_gm_basic_pwr)
+
+ggplot(TS, aes(sqrt.skew, fill = trip.source))+
+  geom_density(alpha = 0.5)+
+  facet_wrap(~location.name, nrow = 2, scales = "free_y")+
+  labs(x = "Averge Daily Skew symmetry", y = "Density", fill = "Trip count source")+
+  lims(x = c(-0.05,0.05))+
+  scale_y_sqrt()+
+  theme(legend.position = c(0.8, 0.9),
+        panel.background = element_blank(),
+        strip.background =element_rect(fill="white"),
+        strip.text = element_text(colour = 'white'))
+
+
+ggplot(TS, aes(sqrt.skew, fill = trip.source))+
+  geom_histogram(alpha = 0.5, color = "black")+
+  facet_wrap(~location.name, nrow = 2, scales = "free_y")+
+  labs(x = "Averge Daily Skew symmetry", y = "Count", fill = "Trip count source")+
+  lims(x = c(-0.05,0.05))+
+  scale_y_sqrt()+
+  theme(legend.position = c(0.8, 0.9),
+        panel.background = element_blank(),
+        strip.background =element_rect(fill="white"),
+        strip.text = element_text(colour = 'white'))
