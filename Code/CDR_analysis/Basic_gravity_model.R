@@ -69,14 +69,14 @@ fit_basic_gravity <- function (M, D, N = NULL, N_orig = NULL, N_dest = NULL, n_c
           c[i,j] <- ifelse(
             i == j,
             1e-06,
-            exp(log(theta) + (omega_1*log(N_dest[i]) + omega_2*log(N_orig[j]) - log( f_d[i,j] )))
+            exp(log(theta) + (omega_1*log(N_dest[i]) + omega_2*log(N_orig[j]) - log(f_d[i,j] )))
           )
          
-          # # Exponential distance model:
-          # f_d[i,j] <- exp(D[i,j]/gamma)
+          # Exponential distance model:
+          f_d[i,j] <- exp(D[i,j]/gamma)
 
-          # Power distance model:
-          f_d[i,j] <- D[i,j]^gamma
+          # # Power distance model:
+          # f_d[i,j] <- D[i,j]^gamma
         }
       }
       
@@ -165,21 +165,22 @@ parallel = TRUE
 
 t.start = Sys.time(); print(Sys.time())
 
-### Namibia adm2
-M <- load.obj(1, '../../Data/NAM/NAM.daily.avg.matrix.RData')          				             # trip counts
-D <- load.obj(1, '../../Data/NAM/NAM_adm2Joined_ppp_distance.RData')
-D <- D[!rownames(D) %in% c("82","84"),!colnames(D) %in% c("82","84")]            # distance matrix, remove districts with no travel recorded
-N <- load.obj(1, '../../Data/NAM/NAM_adm2Joined_ppp_pop2010.RData')
-rownames(N) <- N$ID_2
-N <- N[!N$ID_2 %in% c("82","84"), ][2]
-N <- t(N) ;
-N <- as.vector(N)
-names(N) <- colnames(D)
-
-print(n_chain)
-print(n_burn)
-print(n_samp)
-print(n_thin)
+# ### Namibia adm2 ####
+# M <- load.obj(1, '../../Data/NAM/NAM.daily.avg.matrix.RData')          	# trip counts
+# D <- load.obj(1, '../../Data/NAM/NAM_adm2Joined_ppp_distance.RData')    # distance matrix
+# D <- D[!rownames(D) %in% c("82","84"),!colnames(D) %in% c("82","84")]   # distance matrix, remove districts with no travel recorded
+# N <- load.obj(1, '../../Data/NAM/NAM_adm2Joined_ppp_pop2010.RData')     # population vector
+# rownames(N) <- N$ID_2
+# N <- N[!N$ID_2 %in% c("82","84"), ][2]
+# N <- t(N) ;
+# N <- as.vector(N)
+# names(N) <- colnames(D)
+# 
+# print(n_chain)
+# print(n_burn)
+# print(n_samp)
+# print(n_thin)
+# # Call jags to fit gravity model
 # out.NAM <- fit_basic_gravity(M,
 #                              D,
 #                              N,
@@ -190,14 +191,16 @@ print(n_thin)
 #                              prior = NULL,
 #                              DIC = TRUE,
 #                              parallel = TRUE)
-
-# save(out.NAM, file='../../Data/NAM/GravityModelEstimates/NAM_adm2_daily_estimates_Basic_gm_dist_pwr_chains.RData')
+# 
+# # save(out.NAM, file='../../Data/NAM/GravityModelEstimates/NAM_adm2_daily_estimates_Basic_gm_dist_pwr_chains.RData')
 # print('Saved: ../../Data/NAM/GravityModelEstimates/NAM_adm2_daily_estimates_Basic_gm_dist_pwr_chains.RData')
-print(Sys.time() - t.start)
-
-# details to add in adm
-load("../../Data/NAM/Key_code_name_NAM.RData")
-
+# print(Sys.time() - t.start)
+# 
+# # adm details to add in to final dataframes
+# load("../../Data/NAM/Key_code_name_NAM.RData")
+# 
+# #### Uncomment/comment out one of the following chunks, depending on the distance kernel just used for fitting above gravity model
+# ## 1. Namibia, estimate trips using power distance kernel ##
 # NAM.basic.pwr <- mobility::summarize_mobility(out.NAM)
 # NAM.predicted.basic.pwr <- estimate_trips(Key_code_name_NAM,
 #                                           dist.fx = "pwr",
@@ -213,30 +216,28 @@ load("../../Data/NAM/Key_code_name_NAM.RData")
 #                                           district.label = rank.Id,
 #                                           location = "Namibia",
 #                                           counts=TRUE)
+# 
+# # save(NAM.predicted.basic.pwr, file='../../Data/NAM/GravityModelEstimates/NAM_adm2_daily_estimates_Basic_gm_dist_pwr.RData')
+# 
+# ## 2. Namibia, estimate trips using exponential distance kernel ##
+# # NAM.basic.exp <- mobility::summarize_mobility(out.NAM)
+# # NAM.predicted.basic.exp <- estimate_trips(Key_code_name_NAM,
+# #                                           dist.fx = "exp",
+# #                                           M,
+# #                                           N,
+# #                                           D,
+# #                                           theta=NAM.basic.exp['theta', 'Mean'],
+# #                                           omega.1=NAM.basic.exp['omega_1', 'Mean'],
+# #                                           omega.2=NAM.basic.exp['omega_2', 'Mean'],
+# #                                           gam = NAM.basic.exp[rownames(NAM.basic.exp) %like% 'gamma', 'Mean'],
+# #                                           model = 'BasicModel-exp',
+# #                                           district.ID = districts,
+# #                                           district.label = rank.Id,
+# #                                           location = "Namibia",
+# #                                           counts=TRUE)
+# # save(NAM.predicted.basic.exp, file='../../Data/NAM/GravityModelEstimates/NAM_adm2_daily_estimates_Basic_gm_dist_exp.RData')
 
-
-
-# save(NAM.predicted.basic.pwr, file='../../Data/NAM/GravityModelEstimates/NAM_adm2_daily_estimates_Basic_gm_dist_pwr.RData')
-
-load("../../Data/NAM/GravityModelEstimates/NAM_adm2_daily_estimates_Basic_gm_dist_exp_chains.RData")
-NAM.basic.exp <- mobility::summarize_mobility(out.NAM)
-NAM.predicted.basic.exp <- estimate_trips(Key_code_name_NAM,
-                                          dist.fx = "exp",
-                                          M,
-                                          N,
-                                          D,
-                                          theta=NAM.basic.exp['theta', 'Mean'],
-                                          omega.1=NAM.basic.exp['omega_1', 'Mean'],
-                                          omega.2=NAM.basic.exp['omega_2', 'Mean'],
-                                          gam = NAM.basic.exp[rownames(NAM.basic.exp) %like% 'gamma', 'Mean'],
-                                          model = 'BasicModel-exp',
-                                          district.ID = districts,
-                                          district.label = rank.Id,
-                                          location = "Namibia",
-                                          counts=TRUE)
-# save(NAM.predicted.basic.exp, file='../../Data/NAM/GravityModelEstimates/NAM_adm2_daily_estimates_Basic_gm_dist_exp.RData')
-
-### Kenya adm2
+### Kenya adm2 ####
 M <- load.obj(1, '../../Data/KEN/KEN.daily.avg.matrix.RData')
 D <- load.obj(1, '../../Data/KEN/KEN_adm2_ppp_distance.RData')
 N <- load.obj(1, '../../Data/KEN/KEN_adm2_ppp_pop2010.RData')
@@ -249,48 +250,57 @@ print(n_chain)
 print(n_burn)
 print(n_samp)
 print(n_thin)
-# out.KEN <- fit_basic_gravity(M,
-#                              D,
-#                              N,
-#                              n_chain = n_chain,
-#                              n_burn = n_burn,
-#                              n_samp = n_samp,
-#                              n_thin = n_thin,
-#                              prior = NULL,
-#                              DIC = TRUE,
-#                              parallel = TRUE)
-# save(out.KEN, file='../../Data/KEN/GravityModelEstimates/KEN_adm2_daily_estimates_Basic_gm_dist_pwr_chains.RData')
-# print('Saved: ../../Data/KEN/GravityModelEstimates/KEN_adm2_daily_estimates_Basic_gm_dist_pwr_chains.RData')
+out.KEN <- fit_basic_gravity(M,
+                             D,
+                             N,
+                             n_chain = n_chain,
+                             n_burn = n_burn,
+                             n_samp = n_samp,
+                             n_thin = n_thin,
+                             prior = NULL,
+                             DIC = TRUE,
+                             parallel = TRUE)
+save(out.KEN, file='../../Data/KEN/GravityModelEstimates/KEN_adm2_daily_estimates_Basic_gm_dist_pwr_chains.RData')
+print('Saved: ../../Data/KEN/GravityModelEstimates/KEN_adm2_daily_estimates_Basic_gm_dist_pwr_chains.RData')
 print(Sys.time() - t.start)
 
-KEN.basic.pwr <- mobility::summarize_mobility(out.KEN)
-KEN.predicted.basic.pwr <- estimate_trips(dist.fx = "pwr",
-                                             M,
-                                             N,
-                                             D,
-                                             theta=KEN.basic.pwr['theta', 'Mean'],
-                                             omega.1=KEN.basic.pwr['omega_1', 'Mean'],
-                                             omega.2=KEN.basic.pwr['omega_2', 'Mean'],
-                                             gam = KEN.basic.pwr[rownames(KEN.basic.pwr) %like% 'gamma', 'Mean'],
-                                             model = 'BasicModel-pwr',
-                                             district.ID = districts,
-                                             district.label = rank.Id,
-                                             location = "Kenya",
-                                             counts=TRUE)
-# save(KEN.predicted.basic.pwr, file='../../Data/KEN/GravityModelEstimates/KEN_adm2_daily_estimates_Basic_gm_dist_pwr.RData')
+# details to add in adm
+load("../../Data/KEN/Key_code_name_KEN.RData")
 
-# KEN.basic.exp <- mobility::summarize_mobility(out.KEN)
-# KEN.predicted.basic.exp <- estimate_trips(dist.fx = "exp",
+#### Uncomment/comment out one of the following, depending on the distance kernel just used for fitting above gravity model ####
+
+## 1. Kenya, estimate trips using power distance kernel ###
+# KEN.basic.pwr <- mobility::summarize_mobility(out.KEN)
+# KEN.predicted.basic.pwr <- estimate_trips(Key_code_name_KEN,
+#                                           dist.fx = "pwr",
 #                                           M,
 #                                           N,
 #                                           D,
-#                                           theta=KEN.basic.exp['theta', 'Mean'],
-#                                           omega.1=KEN.basic.exp['omega_1', 'Mean'],
-#                                           omega.2=KEN.basic.exp['omega_2', 'Mean'],
-#                                           gam = KEN.basic.exp[rownames(KEN.basic.exp) %like% 'gamma', 'Mean'],
-#                                           model = 'BasicModel-exp',
+#                                           theta=KEN.basic.pwr['theta', 'Mean'],
+#                                           omega.1=KEN.basic.pwr['omega_1', 'Mean'],
+#                                           omega.2=KEN.basic.pwr['omega_2', 'Mean'],
+#                                           gam = KEN.basic.pwr[rownames(KEN.basic.pwr) %like% 'gamma', 'Mean'],
+#                                           model = 'BasicModel-pwr',
 #                                           district.ID = districts,
 #                                           district.label = rank.Id,
 #                                           location = "Kenya",
 #                                           counts=TRUE)
+# save(KEN.predicted.basic.pwr, file='../../Data/KEN/GravityModelEstimates/KEN_adm2_daily_estimates_Basic_gm_dist_pwr.RData')
+
+## 2. Kenya, estimate trips using exponential distance kernel ##
+KEN.basic.exp <- mobility::summarize_mobility(out.KEN)
+KEN.predicted.basic.exp <- estimate_trips(Key_code_name_KEN,
+                                          dist.fx = "exp",
+                                          M,
+                                          N,
+                                          D,
+                                          theta=KEN.basic.exp['theta', 'Mean'],
+                                          omega.1=KEN.basic.exp['omega_1', 'Mean'],
+                                          omega.2=KEN.basic.exp['omega_2', 'Mean'],
+                                          gam = KEN.basic.exp[rownames(KEN.basic.exp) %like% 'gamma', 'Mean'],
+                                          model = 'BasicModel-exp',
+                                          district.ID = districts,
+                                          district.label = rank.Id,
+                                          location = "Kenya",
+                                          counts=TRUE)
 # save(KEN.predicted.basic.exp, file='../../Data/KEN/GravityModelEstimates/KEN_adm2_daily_estimates_Basic_gm_dist_exp.RData')
