@@ -52,6 +52,11 @@ EI.table <- rbind.data.frame(EI_NAM[1, c("EI_mean", "EI_sd", "location.name", "t
                              EI_KEN_gm_basic_exp[1, c("EI_mean", "EI_sd", "location.name", "trip.source")],
                              EI_KEN_gm_basic_pwr[1, c("EI_mean", "EI_sd", "location.name", "trip.source")])   
 
+### Compare incoming and outgoing
+
+
+
+
 #### Calculate and compare Node Symmetry Index ####
 
 NSI_NAM <- Node.symmetry.index(NAM, "Namibia", "CDRs")
@@ -61,10 +66,24 @@ NSI_KEN <- Node.symmetry.index(KEN, "Kenya", "CDRs")
 NSI_KEN_gm_basic_exp <-Node.symmetry.index(KEN.predicted.basic.exp, "Kenya", "Basic (exponential)")
 NSI_KEN_gm_basic_pwr <-Node.symmetry.index(KEN.predicted.basic.pwr, "Kenya", "Basic (power)")
 
+NAM.NSI.fig <- create.NSI.figure(NSI.obs = NSI_NAM, 
+                                 NSI.all = rbind(NSI_NAM, NSI_NAM_gm_basic_exp,NSI_NAM_gm_basic_pwr))
+KEN.NSI.fig <- create.NSI.figure(NSI.obs = NSI_KEN, 
+                                 NSI.all = rbind(NSI_KEN, NSI_KEN_gm_basic_exp,NSI_KEN_gm_basic_pwr))
+
+
+
+NSI.obs <- rbind(NSI_NAM)
+
+
+
+
+
+
 NSI <- rbind(NSI_NAM, NSI_NAM_gm_basic_exp, NSI_NAM_gm_basic_pwr,
              NSI_KEN, NSI_KEN_gm_basic_exp, NSI_KEN_gm_basic_pwr)
 
-ggplot(NSI, aes(NSI.yearly.avg, fill = trip.source))+
+NSI.compare.model <- ggplot(NSI, aes(NSI.yearly.avg, fill = trip.source))+
   geom_density(alpha = 0.5)+
   facet_wrap(~location.name, nrow = 2, scales = "free_y")+
   labs(x = "Averge Daily NSI", y = "Density", fill = "Trip count source")+
@@ -75,18 +94,6 @@ ggplot(NSI, aes(NSI.yearly.avg, fill = trip.source))+
         strip.background =element_rect(fill="white"),
         strip.text = element_text(colour = 'white'))
 
-ggplot(NSI, aes(NSI.yearly.avg, fill = trip.source))+
-  geom_histogram(alpha = 0.5, color = "black")+
-  facet_wrap(~location.name, nrow = 2, scales = "free_y")+
-  labs(x = "Averge Daily NSI", y = "Count", fill = "Trip count source")+
-  lims(x = c(-0.05,0.05))+
-  scale_y_sqrt()+
-  theme(legend.position = c(0.8, 0.9),
-        panel.background = element_blank(),
-        strip.background =element_rect(fill="white"),
-        strip.text = element_text(colour = 'white'))
-
-
 NSI_NAM_map <- NAM.NSI.map(NSI_NAM)
 NSI_NAM_gm_basic_exp_map <- NAM.NSI.map(NSI_NAM_gm_basic_exp)
 NSI_NAM_gm_basic_pwr_map <- NAM.NSI.map(NSI_NAM_gm_basic_pwr)
@@ -94,8 +101,8 @@ NSI_KEN_map <- KEN.NSI.map(NSI_KEN)
 NSI_KEN_gm_basic_exp_map <- KEN.NSI.map(NSI_KEN_gm_basic_exp)
 NSI_KEN_gm_basic_pwr_map <- KEN.NSI.map(NSI_KEN_gm_basic_pwr)
 
-SSA_NSI_maps <- ggarrange(NSI_NAM_map, NSI_NAM_gm_basic_exp_map, NSI_NAM_gm_basic_pwr_map,
-                          NSI_KEN_map, NSI_KEN_gm_basic_exp_map, NSI_KEN_gm_basic_pwr_map,
+SSA_NSI_maps <- ggarrange(NSI_NAM_map[1], NSI_NAM_gm_basic_exp_map[1], NSI_NAM_gm_basic_pwr_map[1],
+                          NSI_KEN_map[1], NSI_KEN_gm_basic_exp_map[1], NSI_KEN_gm_basic_pwr_map[1],
                           ncol = 3, nrow = 2)
 
 

@@ -14,6 +14,7 @@ library("tidyr")
 
 load("../../Data/NAM/NAM_between_day_mobility_updated_joinedAdm2.RData")
 load("../../Data/NAM/NAM.ID.link.RData")
+load("../../Data/NAM/NAM_adm2Joined_building_urb_binned.RData")
 
 NAM <- mydata.joined
 NAM <- NAM %>%
@@ -26,17 +27,19 @@ NAM$m <- as.integer(sapply(dates.sep, function(x) x[2]))                    # mo
 NAM$y <- as.integer(sapply(dates.sep, function(x) x[3]))                    # year of date
 NAM$trip.date <- as.Date(with(NAM, paste(y, m, d,sep="-")), "%Y-%m-%d")
 
-NAM <- left_join(NAM, county.file.ordered[-c(5:8)], by = c("i" = "ID_2"))
-NAM <- left_join(NAM, county.file.ordered[-c(5:8)], by = c("j" = "ID_2"))
+NAM <- left_join(NAM, county.file.ordered[-c(6:8)], by = c("i" = "ID_2"))
+NAM <- left_join(NAM, county.file.ordered[-c(6:8)], by = c("j" = "ID_2"))
+NAM <- left_join(NAM, urbanicity[c(1:2)], by = c("i" = "ID_2"))
+NAM <- left_join(NAM, urbanicity[c(1:2)], by = c("j" = "ID_2"))
 
 colnames(NAM) <- c("start.adm2.code", "end.adm2.code", "trip.date", "trip.count", "d", "m", "y",
-                   "start.adm1.name", "start.adm2.name", "X_start", "Y_start", "start.adm1.code",
-                   "end.adm1.name", "end.adm2.name", "X_end", "Y_end", "end.adm1.code")
+                   "start.adm1.name", "start.adm2.name", "X_start", "Y_start", "pop.start", "start.adm1.code",
+                   "end.adm1.name", "end.adm2.name", "X_end", "Y_end", "pop.end", "end.adm1.code", "urb.start", "urb.end")
 NAM$link.distance.km <- distHaversine(matrix(c(NAM$X_start, NAM$Y_start), ncol =2),   # distance in km
                                    matrix(c(NAM$X_end, NAM$Y_end), ncol = 2))/1000
 
 NAM <- NAM[ , c("start.adm1.name", "start.adm2.name", "start.adm1.code", "start.adm2.code", "end.adm1.name", "end.adm2.name", "end.adm1.code", "end.adm2.code",
-                "d", "m", "y", "trip.date", "trip.count", "X_start", "Y_start", "X_end", "Y_end", "link.distance.km")]
+                "d", "m", "y", "trip.date", "trip.count", "X_start", "Y_start", "X_end", "Y_end", "pop.start", "urb.start", "pop.end", "urb.end", "link.distance.km")]
 
 # save(NAM, file = "../../Data/NAM/NAM.daily.trips.RData")
 
@@ -89,14 +92,12 @@ adm.details$adm2_name_CAPS[adm.details$adm2_name_CAPS == "BUTERE MUMIAS"] <- "BU
 trip.data <- read.csv('../../Data/KEN/KEN_entrances_per_day.csv', header = TRUE, check.names = FALSE)
 trip.long <- melt(trip.data, id.vars = c("origin", "destination"))
 colnames(trip.long) <- c("i", "j", "date", "trip.count")
-trip.long <- left_join(trip.long, adm.details[, c("adm1_ID", "adm1_name", "adm2_ID", "adm2_name", "X_coord", "Y_coord",  
-                                                  "adm2_name_CAPS")], by = c("i" = "adm2_name_CAPS")) 
-trip.long <- left_join(trip.long, adm.details[, c("adm1_ID", "adm1_name", "adm2_ID", "adm2_name", "X_coord", "Y_coord",  
-                                                  "adm2_name_CAPS")], by = c("j" = "adm2_name_CAPS"))#[-c(1,2)]
+trip.long <- left_join(trip.long, adm.details, by = c("i" = "adm2_name_CAPS")) 
+trip.long <- left_join(trip.long, adm.details, by = c("j" = "adm2_name_CAPS"))#[-c(1,2)]
 colnames(trip.long) <- c("start.adm2.name.Case","end.adm2.name.Case",
                          "trip.date", "trip.count",
-                         "start.adm1.code", "start.adm1.name", "start.adm2.code", "start.adm2.name", "X_start", "Y_start", 
-                         "end.adm1.code", "end.adm1.name", "end.adm2.code","end.adm2.name", "X_end", "Y_end")
+                         "start.adm1.code", "start.adm1.name", "start.adm2.code", "start.adm2.name", "X_start", "Y_start", "pop.start", "urb.start",
+                         "end.adm1.code", "end.adm1.name", "end.adm2.code","end.adm2.name", "X_end", "Y_end", "pop.end", "urb.end")
 
 trip.long <- subset(trip.long, start.adm2.name.Case != " ")
 trip.long <- subset(trip.long, end.adm2.name.Case != " ")
@@ -112,14 +113,12 @@ stay.data <- read.csv('../../Data/KEN/KEN_stays_per_day.csv', header = TRUE, che
 stay.data$destination <- stay.data$origin
 stay.long <- melt(stay.data, id.vars = c("origin", "destination"))
 colnames(stay.long) <- c("i", "j", "date", "trip.count")
-stay.long <- left_join(stay.long, adm.details[, c("adm1_ID", "adm1_name", "adm2_ID", "adm2_name", "X_coord", "Y_coord", 
-                                                  "adm2_name_CAPS")], by = c("i" = "adm2_name_CAPS")) 
-stay.long <- left_join(stay.long, adm.details[, c("adm1_ID", "adm1_name", "adm2_ID", "adm2_name", "X_coord", "Y_coord", 
-                                                  "adm2_name_CAPS")], by = c("j" = "adm2_name_CAPS"))#[-c(1,2)]
+stay.long <- left_join(stay.long, adm.details, by = c("i" = "adm2_name_CAPS")) 
+stay.long <- left_join(stay.long, adm.details, by = c("j" = "adm2_name_CAPS"))#[-c(1,2)]
 colnames(stay.long) <- c("start.adm2.name.Case","end.adm2.name.Case",
                          "trip.date", "trip.count",
-                         "start.adm1.code", "start.adm1.name", "start.adm2.code", "start.adm2.name", "X_start", "Y_start", 
-                         "end.adm1.code", "end.adm1.name", "end.adm2.code","end.adm2.name", "X_end", "Y_end")
+                         "start.adm1.code", "start.adm1.name", "start.adm2.code", "start.adm2.name", "X_start", "Y_start", "pop.start", "urb.start",
+                         "end.adm1.code", "end.adm1.name", "end.adm2.code","end.adm2.name", "X_end", "Y_end", "pop.end", "urb.end")
 stay.long <- subset(stay.long, start.adm2.name.Case != " ")
 
 dates.sep <- strsplit(as.character(stay.long$trip.date), "/", perl=TRUE)   # separate date string 
@@ -136,7 +135,7 @@ trip.data.long$link.distance.km <- distHaversine(matrix(c(trip.data.long$X_start
 
 
 KEN <- trip.data.long[ , c("start.adm1.name", "start.adm2.name", "start.adm1.code", "start.adm2.code", "end.adm1.name", "end.adm2.name", "end.adm1.code", "end.adm2.code",
-                                     "d", "m", "y", "trip.date", "trip.count", "X_start", "Y_start", "X_end", "Y_end", "link.distance.km")]
+                                     "d", "m", "y", "trip.date", "trip.count", "X_start", "Y_start", "X_end", "Y_end", "pop.start", "urb.start", "pop.end", "urb.end", "link.distance.km")]
 
 KEN <- subset(KEN, !trip.date %in% as.Date(c("2008-06-01", "2009-03-04"))) ## Dates seemed to have aggregrated trip counts that are not in line with counts seen on other dates
 

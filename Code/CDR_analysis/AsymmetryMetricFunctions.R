@@ -49,19 +49,34 @@ Node.symmetry.index <- function(df, location.name, trip.source){
   
   NSI$NSI <- (NSI$incoming.trips - NSI$outgoing.trips)/(NSI$incoming.trips + NSI$outgoing.trips)
   NSI <- subset(NSI, start.adm2.code == end.adm2.code) # since each origin has unique NSI, regardless of destinations, just select one row/location
+  NSI$total.trips = NSI$incoming.trips + NSI$outgoing.trips
   
-  # ggplot(NSI, aes(outgoing.trips, incoming.trips)) + 
+  # ggplot(NSI, aes(outgoing.trips, incoming.trips)) +
   #   geom_point()+
-  #   geom_abline(intercept = 0, slope = 1) + 
+  #   geom_abline(intercept = 0, slope = 1) +
   #   scale_y_continuous(labels = function(x) format(x, scientific = TRUE))+
-  #   facet_wrap(~start.adm2.name, nrow = 6, scales = "free")
+  #   scale_x_continuous(labels = function(x) format(x, scientific = TRUE))+
+  #   facet_wrap(~start.adm2.name, nrow = 9, scales = "free")+
+  #   theme(axis.text = element_text(size = 6))
   
   
   NSI.overall <- NSI %>%
-    group_by(start.adm2.code, start.adm2.name)%>%
-    summarise(NSI.yearly.avg = mean(NSI, na.rm = T),
+    group_by(start.adm2.code, start.adm2.name, pop.start, urb.start)%>%
+    summarise(total.trips.avg = mean(total.trips, na.rm = T),
+              total.trips.sd = sd(total.trips, na.rm = T),
+              incoming.trips.avg = mean(incoming.trips, na.rm = T),
+              incoming.trips.sd = sd(incoming.trips, na.rm = T),
+              outgoing.trips.avg = mean(outgoing.trips, na.rm = T),
+              outgoing.trips.sd = sd(outgoing.trips, na.rm = T),
+              NSI.yearly.avg = mean(NSI, na.rm = T),
               NSI.yearly.sd = sd(NSI, na.rm = T))%>%
     distinct(start.adm2.code, .keep_all = T)
+  
+  # ggplot(NSI.overall, aes(outgoing.trips.avg, incoming.trips.avg)) +
+  #   geom_point()+
+  #   geom_abline(intercept = 0, slope = 1) +
+  #   scale_y_continuous(labels = function(x) format(x, scientific = TRUE))+
+  #   scale_x_continuous(labels = function(x) format(x, scientific = TRUE))
   
   NSI.overall$location.name <- rep(location.name, nrow = nrow(NSI.overall))
   NSI.overall$trip.source <- rep(trip.source, nrow = nrow(NSI.overall))
@@ -85,10 +100,10 @@ NAM.NSI.map <- function(NSI_NAM){
   key.adm2$start.adm2.code[key.adm2$NAME_2 == "Ompundja"] = 84
   key.adm2 <- left_join(key.adm2, NSI_NAM, by = c("start.adm2.code"))
   
-  states.shp.2 <- merge(states.shp, key.adm2, by.x = c("NAME_1", "NAME_2", "ID_1", "ID_2", "build_urb"), by.y = c("NAME_1", "NAME_2", "ID_1", "ID_2", "build_urb"))
-  # Key_code_name_NAM <- states.shp.2@data[, c("NAME_1", "NAME_2", "start.adm1.code", "start.adm2.code")]  ## used to link code with names in Basic gravity model function
-  # colnames(Key_code_name_NAM) <- c("start.adm1.name", "start.adm2.name", "start.adm1.code", "start.adm2.code")
-  # save(Key_code_name_NAM, file = "../../Data/NAM/Key_code_name_NAM.RData") 
+  states.shp.2 <- merge(states.shp, key.adm2, by.x = c("NAME_1", "NAME_2", "ID_1", "ID_2","pop2010ppp", "build_urb"), by.y = c("NAME_1", "NAME_2", "ID_1", "ID_2", "pop.start", "urb.start"))
+  # Key_code_name_NAM <- states.shp.2@data[, c("NAME_1", "NAME_2", "start.adm1.code", "start.adm2.code","pop2010ppp", "build_urb")]  ## used to link code with names in Basic gravity model function
+  # colnames(Key_code_name_NAM) <- c("start.adm1.name", "start.adm2.name", "start.adm1.code", "start.adm2.code", "start.pop", "urb.pop")
+  # save(Key_code_name_NAM, file = "../../Data/NAM/Key_code_name_NAM.RData")
   states.shp.f <- fortify(states.shp.2, region = "start.adm2.code", name = "NAME_2")
   class(states.shp.f)
   
@@ -102,13 +117,14 @@ NAM.NSI.map <- function(NSI_NAM){
                  aes(x = long, y = lat, group = group, fill = NSI.yearly.avg),  # could have fill depend on variable (i.e. population density)
                  color = "black", size = 0.25)+
     coord_map() + 
-    scale_fill_distiller(name = "Node Strength Index", 
+    scale_fill_distiller(name = "Average NSI", 
                          palette = "YlOrRd", 
                          breaks = c(-0.015, -0.01, -0.005, 0, 0.005, 0.01, 0.015),#pretty_breaks(n = 3),
                          labels = c('-0.015', '-0.01', '-0.005', '0', '0.005', '0.01', '0.015'),
                          limits = c(min = -0.015, max = 0.015)) +
-    guides(fill = guide_colourbar(barwidth = 1, barheight = 15))+
-    theme(axis.ticks = element_blank(), 
+    # guides(fill = guide_colourbar(barwidth = 1, barheight = 15))+
+    theme(legend.position = c(0.85, 0.45),
+          axis.ticks = element_blank(), 
           axis.title = element_blank(), 
           axis.text =  element_blank(), 
           panel.background = element_blank())
@@ -123,13 +139,13 @@ NAM.NSI.map <- function(NSI_NAM){
                          breaks = c(0, 0.05, 0.1, 0.2, 0.3, 0.4),
                          labels = c('0', '0.05', '0.1', '0.2', '0.3', '0.4'),
                          limits = c(min = 0, max = 0.4)) +
-    labs(title = "Variance in Daily NSI")+
     theme(legend.position = c(0.85, 0.45),
           axis.ticks = element_blank(), 
           axis.title = element_blank(), 
           axis.text =  element_blank(), 
           panel.background = element_blank())
-  return(NSI.map)
+  maps <- list(NSI.map, NSI.var.map)
+  return(maps)
 }
 
 KEN.NSI.map <- function(NSI_KEN){
@@ -153,7 +169,7 @@ KEN.NSI.map <- function(NSI_KEN){
                              levels = c("Central", "Coast", "Eastern", "Nairobi","North-Eastern","Nyanza","Rift Valley", "Western"),
                              labels = c("Central", "Coast", "Eastern", "Nairobi","North Eastern","Nyanza","Rift Valley", "Western"))
   adm2.data <- left_join(adm2.data, adm1.data, by = c("ADM1_NAME" = "NAME_1"))
-  adm2 <- adm2.data[, c("X_coord", "Y_coord", "ID_1", "fid", "ADM1_NAME", "ADM2_NAME")]
+  adm2 <- adm2.data[, c("X_coord", "Y_coord", "ID_1", "fid", "ADM1_NAME", "ADM2_NAME", "build_urb", "pop2010sum")]
   adm2 <- adm2[order(adm2$ID_1),]
   adm2$ID_2 <- seq(1:nrow(adm2))
   
@@ -162,8 +178,8 @@ KEN.NSI.map <- function(NSI_KEN){
  
   mydata.2 <- merge(mydata, adm2, by.x = "Name_2", by.y = "ADM2_NAME")
   
-  # Key_code_name_KEN <- mydata.2[, c("Name_1", "Name_2", "ID_1", "ID_2")]  ## used to link code with names in Basic gravity model function
-  # colnames(Key_code_name_KEN) <- c("start.adm1.name", "start.adm2.name", "start.adm1.code", "start.adm2.code")
+  # Key_code_name_KEN <- mydata.2[, c("Name_1", "Name_2", "ID_1", "ID_2", "pop2010sum", "build_urb")]  ## used to link code with names in Basic gravity model function
+  # colnames(Key_code_name_KEN) <- c("start.adm1.name", "start.adm2.name", "start.adm1.code", "start.adm2.code", "pop.start", "urb.start")
   # save(Key_code_name_KEN, file = "../../Data/KEN/Key_code_name_KEN.RData")
 
   mydata.2 <- left_join(mydata.2, NSI_KEN, by = c("Name_2" = "start.adm2.name"))
@@ -177,23 +193,108 @@ KEN.NSI.map <- function(NSI_KEN){
   merge.shp.coef <- merge(states.shp.f, mydata.2, by.x= "id",  by.y = "id.2", all.x = TRUE)
   final.plot <- merge.shp.coef[order(merge.shp.coef$order), ]
   
-  ## plot
-  ggplot() +
+  
+  NSI.map <- ggplot() +
     geom_polygon(data = final.plot,
-                 aes(x = long, y = lat, group = group, fill = NSI.yearly.avg),  
+                 aes(x = long, y = lat, group = group, fill = NSI.yearly.avg),  # could have fill depend on variable (i.e. population density)
                  color = "black", size = 0.25)+
     coord_map() + 
-    scale_fill_distiller(name = "Node Strength Index", 
+    scale_fill_distiller(name = "Average NSI", 
                          palette = "YlOrRd", 
-                         breaks = c(-0.015, -0.01, -0.005, 0, 0.005, 0.01, 0.015),
+                         breaks = c(-0.015, -0.01, -0.005, 0, 0.005, 0.01, 0.015),#pretty_breaks(n = 3),
                          labels = c('-0.015', '-0.01', '-0.005', '0', '0.005', '0.01', '0.015'),
-                         limits = c(min = -0.0205, max = 0.0205))+
-    theme(axis.ticks = element_blank(), 
+                         limits = c(min = -0.021, max = 0.021)) +
+    # guides(fill = guide_colourbar(barwidth = 1, barheight = 15))+
+    theme(#legend.position = c(0.85, 0.45),
+          axis.ticks = element_blank(), 
           axis.title = element_blank(), 
           axis.text =  element_blank(), 
-          panel.background = element_blank())+
-    guides(fill = guide_colourbar(barwidth = 1, barheight = 15))
+          panel.background = element_blank())
+  
+  NSI.var.map <- ggplot() +
+    geom_polygon(data = final.plot,
+                 aes(x = long, y = lat, group = group, fill = NSI.yearly.sd),  # could have fill depend on variable (i.e. population density)
+                 color = "black", size = 0.25)+
+    coord_map() + 
+    scale_fill_distiller(name = "Variance in NSI", 
+                         palette = "YlGnBu", 
+                         breaks = c(0, 0.05, 0.1, 0.2, 0.3, 0.4),
+                         labels = c('0', '0.05', '0.1', '0.2', '0.3', '0.4'),
+                         limits = c(min = 0, max = 0.4)) +
+    theme(#legend.position = c(0.85, 0.45),
+          axis.ticks = element_blank(), 
+          axis.title = element_blank(), 
+          axis.text =  element_blank(), 
+          panel.background = element_blank())
+  maps <- list(NSI.map, NSI.var.map)
+  return(maps)
 }
+
+create.NSI.figure <- function(NSI.obs, NSI.all, location){
+  
+  income.outgoing.trips <- ggplot(NSI.obs, aes(incoming.trips.avg, outgoing.trips.avg))+
+    geom_point()+
+    geom_errorbar(aes(ymin = incoming.trips.avg - incoming.trips.sd, ymax = incoming.trips.avg + incoming.trips.sd))+
+    geom_errorbar(aes(xmin = outgoing.trips.avg - outgoing.trips.sd, xmax = outgoing.trips.avg + outgoing.trips.sd))+
+    geom_abline(intercept = 0, slope = 1) +
+    facet_wrap(~location.name, nrow = 2, scales = "free")+
+    scale_y_log10()+
+    scale_x_log10()+
+    labs(x = "Average daily incoming trips", y = "Average daily outgoing trips")+
+    theme(panel.background = element_blank(),
+          strip.background =element_rect(fill="white"),
+          strip.text = element_text(colour = 'white'),
+          axis.line.x = element_line(color="black", size = 0.5),
+          axis.line.y = element_line(color="black", size = 0.5))
+  
+  NSI.pop <- ggplot(NSI.obs, aes(pop.start, NSI.yearly.avg))+
+    geom_point()+
+    geom_errorbar(aes(ymin = NSI.yearly.avg - NSI.yearly.sd, ymax = NSI.yearly.avg + NSI.yearly.sd))+
+    scale_x_log10()+
+    facet_wrap(~location.name, nrow = 2, scales = "free")+
+    labs(x = "Population size", y = "Average daily NSI")+
+    theme(legend.position = c(0.8, 0.9),
+          panel.background = element_blank(),
+          strip.background =element_rect(fill="white"),
+          strip.text = element_text(colour = 'white'),
+          axis.line.x = element_line(color="black", size = 0.5),
+          axis.line.y = element_line(color="black", size = 0.5))
+  
+  NSI.urb <- ggplot(NSI.obs, aes(urb.start, NSI.yearly.avg))+
+    geom_point()+
+    geom_errorbar(aes(ymin = NSI.yearly.avg - NSI.yearly.sd, ymax = NSI.yearly.avg + NSI.yearly.sd))+
+    facet_wrap(~location.name, nrow = 2, scales = "free")+
+    labs(x = "Urbanicity", y = "Average daily NSI")+
+    theme(legend.position = c(0.8, 0.9),
+          panel.background = element_blank(),
+          strip.background =element_rect(fill="white"),
+          strip.text = element_text(colour = 'white'),
+          axis.line.x = element_line(color="black", size = 0.5),
+          axis.line.y = element_line(color="black", size = 0.5))
+  
+  if(location == "Namibia"){
+    NSI_map = NAM.NSI.map(NSI.obs)
+  } else{
+    NSI_map = KEN.NSI.map(NSI.obs)
+  }
+  
+ NSI.compare.model <- ggplot(NSI.all, aes(NSI.yearly.avg, fill = trip.source))+
+    geom_density(alpha = 0.5)+
+    labs(x = "Averge Daily NSI", y = "Density", fill = "Trip count source")+
+    lims(x = c(-0.05,0.05))+
+    scale_y_sqrt()+
+    theme(legend.position = c(0.8, 0.8),
+          panel.background = element_blank(),
+          strip.background =element_rect(fill="white"),
+          strip.text = element_text(colour = 'white'))
+  
+  NSI_plots <- ggarrange(income.outgoing.trips, NSI.pop, NSI.urb, NSI_map[[1]], NSI_map[[2]], NSI.compare.model,
+                            ncol = 3, nrow = 2,
+                         labels = c("A", "B", "C", "D", "E", "F"))
+  
+  return(NSI_plots)
+}
+
 
 #### Transitive Symmetry Index ####
 
