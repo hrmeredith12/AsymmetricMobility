@@ -288,11 +288,37 @@ create.NSI.figure <- function(NSI.obs, NSI.all, location){
           strip.background =element_rect(fill="white"),
           strip.text = element_text(colour = 'white'))
   
-  NSI_plots <- ggarrange(income.outgoing.trips, NSI.pop, NSI.urb, NSI_map[[1]], NSI_map[[2]], NSI.compare.model,
+  NSI_plots <- ggarrange(income.outgoing.trips, NSI_map[[1]], NSI_map[[2]], NSI.pop, NSI.urb, NSI.compare.model,
                             ncol = 3, nrow = 2,
                          labels = c("A", "B", "C", "D", "E", "F"))
   
   return(NSI_plots)
+}
+
+#### Link Symmetry Index (LSI) ####
+Link.symmetry.index <- function(df, location.name, trip.source){
+ 
+  LSI.ij <- subset(df, start.adm2.code != end.adm2.code)
+  
+  LSI.ij <- left_join(LSI.ij, LSI.ij[, c("start.adm2.code", "end.adm2.code", "trip.date", "trip.count")], by = c("start.adm2.code" = "end.adm2.code", "end.adm2.code" = "start.adm2.code", "trip.date"))
+  
+  colnames(LSI.ij) <- c("start.adm1.name", "start.adm2.name", "start.adm1.code", "start.adm2.code", 
+                        "end.adm1.name", "end.adm2.name", "end.adm1.code", "end.adm2.code", 
+                        "d","m", "y","trip.date", "trips.ij", "X_start", "Y_start", "X_end", "Y_end",
+                        "pop.start", "urb.start", "pop.end", "urb.end", "link.distance.km", "trips.ji")
+  
+  LSI.ij <- subset(LSI.ij, !is.na(trips.ji))
+  LSI.ij <- subset(LSI.ij, trips.ij != 0 | trips.ji !=0)
+  
+  LSI.ij <- LSI.ij %>%
+    mutate(link.id = paste(start.adm2.name, end.adm2.name, sep = "-"),
+           total.link.trips = trips.ij + trips.ji,
+           prop.ij = trips.ij/total.link.trips,
+           prop.ji = trips.ji/total.link.trips,
+           LSI.ij = ifelse(trips.ij == 0 | trips.ji == 0, 0, -(prop.ij * log(prop.ij) + prop.ji * log(prop.ji))/log(2)))
+  
+  
+  
 }
 
 

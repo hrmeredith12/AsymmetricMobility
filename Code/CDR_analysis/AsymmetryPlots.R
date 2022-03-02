@@ -67,46 +67,11 @@ NSI_KEN_gm_basic_exp <-Node.symmetry.index(KEN.predicted.basic.exp, "Kenya", "Ba
 NSI_KEN_gm_basic_pwr <-Node.symmetry.index(KEN.predicted.basic.pwr, "Kenya", "Basic (power)")
 
 NAM.NSI.fig <- create.NSI.figure(NSI.obs = NSI_NAM, 
-                                 NSI.all = rbind(NSI_NAM, NSI_NAM_gm_basic_exp,NSI_NAM_gm_basic_pwr))
+                                 NSI.all = rbind(NSI_NAM, NSI_NAM_gm_basic_exp,NSI_NAM_gm_basic_pwr),
+                                 location = "Namibia")
 KEN.NSI.fig <- create.NSI.figure(NSI.obs = NSI_KEN, 
-                                 NSI.all = rbind(NSI_KEN, NSI_KEN_gm_basic_exp,NSI_KEN_gm_basic_pwr))
-
-
-
-NSI.obs <- rbind(NSI_NAM)
-
-
-
-
-
-
-NSI <- rbind(NSI_NAM, NSI_NAM_gm_basic_exp, NSI_NAM_gm_basic_pwr,
-             NSI_KEN, NSI_KEN_gm_basic_exp, NSI_KEN_gm_basic_pwr)
-
-NSI.compare.model <- ggplot(NSI, aes(NSI.yearly.avg, fill = trip.source))+
-  geom_density(alpha = 0.5)+
-  facet_wrap(~location.name, nrow = 2, scales = "free_y")+
-  labs(x = "Averge Daily NSI", y = "Density", fill = "Trip count source")+
-  lims(x = c(-0.05,0.05))+
-  scale_y_sqrt()+
-  theme(legend.position = c(0.8, 0.9),
-        panel.background = element_blank(),
-        strip.background =element_rect(fill="white"),
-        strip.text = element_text(colour = 'white'))
-
-NSI_NAM_map <- NAM.NSI.map(NSI_NAM)
-NSI_NAM_gm_basic_exp_map <- NAM.NSI.map(NSI_NAM_gm_basic_exp)
-NSI_NAM_gm_basic_pwr_map <- NAM.NSI.map(NSI_NAM_gm_basic_pwr)
-NSI_KEN_map <- KEN.NSI.map(NSI_KEN)
-NSI_KEN_gm_basic_exp_map <- KEN.NSI.map(NSI_KEN_gm_basic_exp)
-NSI_KEN_gm_basic_pwr_map <- KEN.NSI.map(NSI_KEN_gm_basic_pwr)
-
-SSA_NSI_maps <- ggarrange(NSI_NAM_map[1], NSI_NAM_gm_basic_exp_map[1], NSI_NAM_gm_basic_pwr_map[1],
-                          NSI_KEN_map[1], NSI_KEN_gm_basic_exp_map[1], NSI_KEN_gm_basic_pwr_map[1],
-                          ncol = 3, nrow = 2)
-
-
-
+                                 NSI.all = rbind(NSI_KEN, NSI_KEN_gm_basic_exp,NSI_KEN_gm_basic_pwr),
+                                 location = "Kenya")
 
 NSI.table <- rbind.data.frame(NSI_NAM[, c("location.name", "start.adm2.name", "start.adm2.code", "NSI.yearly.avg", "NSI.yearly.sd", "trip.source")],   # Entropy index for Namibia: 0.469 +/- 0.0129
                              NSI_KEN[, c("location.name", "start.adm2.name", "start.adm2.code", "NSI.yearly.avg", "NSI.yearly.sd", "trip.source")])   # Entropy index for Kenya: 0.4654 +/- 0.008
