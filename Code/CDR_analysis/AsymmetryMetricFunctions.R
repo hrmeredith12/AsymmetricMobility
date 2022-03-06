@@ -1,5 +1,6 @@
 ## Calculating different metrics for network symmetry
 library(asymmetry)
+library(DescTools)
 library(Cairo)
 library(dplyr)
 library(ggmap)
@@ -383,3 +384,66 @@ transitive.symmetry <- function(df, location.name, trip.source){
   return(asym.plot)
 }
 
+#### Gini Coefficient by Data set ####
+
+Origin.Gini.Figure <- function(cdr, gravity_pwr, gravity_exp){
+ 
+   # Calculate gini coeffitient for all origins in CDRs
+  ss.matrix <- skewsymmetry(cdr)
+  a.df <- as.data.frame(ss.matrix[["A"]])
+  a.df$cdr.gini <- apply(a.df, 1, function(x) Gini(abs(x)))
+  a.df$id <- row.names(a.df)
+  a.df <- a.df[, c('id', 'cdr.gini')]
+  
+  # Create matrix for gravity pwr data
+  matrix_pwr <-  gravity_pwr %>% select(start.adm2.code, end.adm2.code, trip.count) %>%
+    pivot_wider(names_from = end.adm2.code,
+                values_from = trip.count) 
+  matrix_pwr <- as.matrix(matrix_pwr)
+  rownames(matrix_pwr) <- matrix_pwr[,1]
+  matrix_pwr <- matrix_pwr[,-1]
+  matrix_pwr[is.na(matrix_pwr)] <- 0
+  matrix_pwr.order <- matrix_pwr[order(as.integer(rownames(matrix_pwr))), order(as.integer(colnames(matrix_pwr)))]
+  # Calculate gini coeffitient for all origins in gravity pwr data
+  ss.matrix.pwr <- skewsymmetry(matrix_pwr.order)
+  a.df.pwr <- as.data.frame(ss.matrix.pwr[["A"]])
+  a.df.pwr$pwr.gini <- apply(a.df.pwr, 1, function(x) Gini(abs(x)))
+  a.df.pwr$id <- row.names(a.df.pwr)
+  a.df.pwr <- a.df.pwr[, c('id', 'pwr.gini')]
+  
+  # Create matrix for gravity exp data
+  matrix_exp <-  gravity_exp %>% select(start.adm2.code, end.adm2.code, trip.count) %>%
+    pivot_wider(names_from = end.adm2.code,
+                values_from = trip.count) 
+  matrix_exp <- as.matrix(matrix_exp)
+  rownames(matrix_exp) <- matrix_exp[,1]
+  matrix_exp <- matrix_exp[,-1]
+  matrix_exp[is.na(matrix_exp)] <- 0
+  matrix_exp.order <- matrix_exp[order(as.integer(rownames(matrix_exp))), order(as.integer(colnames(matrix_exp)))]
+  # Calculate gini coeffitient for all origins in gravity exp data
+  ss.matrix.exp <- skewsymmetry(matrix_exp.order)
+  a.df.exp <- as.data.frame(ss.matrix.exp[["A"]])
+  a.df.exp$exp.gini <- apply(a.df.exp, 1, function(x) Gini(abs(x)))
+  a.df.exp$id <- row.names(a.df.exp)
+  a.df.exp <- a.df.exp[, c('id', 'exp.gini')]
+  
+  # Merge gini coefficients and reshape to be able to plot
+  df <- left_join(a.df, a.df.pwr, by = c("id" = "id")) 
+  df <- left_join(df, a.df.exp, by = c("id" = "id")) 
+  df.long <- melt(df, id.vars = c("id"))
+  
+  # Create origin gini density plot
+  gini_origin_plot <- ggplot(df.long, aes(x=value, y=..scaled.., fill=variable)) + 
+    geom_density(alpha=.2) + theme_bw() + 
+    labs(x = 'Origin Gini Coeffitient', y = 'Density') +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(),
+          panel.border = element_blank(),
+          axis.line = element_line(colour = "black"),
+          legend.position=c(0.2,0.91)) +
+    scale_fill_manual(name="Trip count source", 
+                          values = c("cdr.gini" = "red", "pwr.gini" = "green", "exp.gini" = "blue"), 
+                          labels = c("Call detail record", "Basic (power)", "Basic (exponential)"))
+  return(gini_origin_plot)
+}

@@ -3,7 +3,7 @@
 ##      - Trip data from CDRs were cleaned/generated in script "CDR_prep_function.R"
 ##      - Trip data generated from models were generated in script "Basic_gravity_model.R". Note that it takes 1-2 hours to run a basic gravity model. 
 ## Output: Entropy Index, Node Symmetry Index, Gini Coefficient, Asymmetry Transitive Index
-## Last updated: February 21, 2022
+## Last updated: March 5, 2022
 ## By: Hannah Meredith
 
 library(tidyr)
@@ -18,10 +18,12 @@ source("AsymmetryMetricFunctions.R")
 
 ## Import datafames
 load("../../Data/NAM/NAM.daily.trips.RData") ## Daily trips calculated from CDRs
+load("../../Data/NAM/NAM.daily.avg.matrix.RData") ## Average daily trips matrix calculated from CDRs
 load("../../Data/NAM/GravityModelEstimates/NAM_adm2_daily_estimates_Basic_gm_dist_exp.RData") ## Avg daily trips estimated from gravity model
 load("../../Data/NAM/GravityModelEstimates/NAM_adm2_daily_estimates_Basic_gm_dist_pwr.RData") ## Avg daily trips estimated from gravity model
 
 load("../../Data/KEN/KEN.daily.trips.RData") ## Daily trips calculated from CDRs
+load("../../Data/KEN/KEN.daily.avg.matrix.RData") ## Average daily trips matrix calculated from CDRs
 load("../../Data/KEN/GravityModelEstimates/KEN_adm2_daily_estimates_Basic_gm_dist_exp.RData") ## Avg daily trips estimated from gravity model
 load("../../Data/KEN/GravityModelEstimates/KEN_adm2_daily_estimates_Basic_gm_dist_pwr.RData") ## Avg daily trips estimated from gravity model
 
@@ -111,3 +113,7 @@ ggplot(TS, aes(sqrt.skew, fill = trip.source))+
         panel.background = element_blank(),
         strip.background =element_rect(fill="white"),
         strip.text = element_text(colour = 'white'))
+
+# Gini Coefficient Plots
+Origin.Gini.Figure(NAM.daily.avg.matrix.order, NAM.predicted.basic.pwr, NAM.predicted.basic.exp)
+Origin.Gini.Figure(KEN.daily.avg.matrix.order, KEN.predicted.basic.pwr, KEN.predicted.basic.exp)
